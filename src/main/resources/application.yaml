@@ -27,13 +27,6 @@ spring:
             host: ${SPRING_DATA_REDIS_HOST:localhost}
             port: ${SPRING_DATA_REDIS_PORT:6379}
 
-    webflux:
-        apiversion:
-            use:
-                path-segment: 1
-            supported: "1"
-            default: "1"
-
 mock:
     percentage:
         value: ${MOCK_PERCENTAGE_VALUE:10.0}

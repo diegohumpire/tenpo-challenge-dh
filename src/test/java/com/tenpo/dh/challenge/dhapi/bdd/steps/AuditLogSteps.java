@@ -38,10 +38,10 @@ public class AuditLogSteps {
         }
     }
 
-    @When("envío GET /api/1/audit-logs?page={int}&size={int}")
+    @When("envío GET /api/v1/audit-logs?page={int}&size={int}")
     public void envíoGetAuditLogs(int page, int size) {
         lastResponse = webTestClient.get()
-                .uri(u -> u.path("/api/1/audit-logs").queryParam("page", page).queryParam("size", size).build())
+                .uri(u -> u.path("/api/v1/audit-logs").queryParam("page", page).queryParam("size", size).build())
                 .exchange();
     }
 
@@ -68,10 +68,10 @@ public class AuditLogSteps {
         Thread.sleep(500);
     }
 
-    @And("consulto GET /api/1/audit-logs?page={int}&size={int}")
+    @And("consulto GET /api/v1/audit-logs?page={int}&size={int}")
     public void consultaAuditLogs(int page, int size) {
         lastResponse = webTestClient.get()
-                .uri(u -> u.path("/api/1/audit-logs").queryParam("page", page).queryParam("size", size).build())
+                .uri(u -> u.path("/api/v1/audit-logs").queryParam("page", page).queryParam("size", size).build())
                 .exchange();
     }
 

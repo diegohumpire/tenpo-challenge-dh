@@ -17,13 +17,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class WebFluxConfig implements WebFluxConfigurer {
 
     /**
-     * Adds /api prefix to all versioned @RestController beans.
+     * Adds /api/v1 prefix to all versioned @RestController beans.
      * MockPercentageController (/mock/**) and springdoc (/v3/**, /swagger-ui**)
      * are explicitly excluded so they remain unversioned.
      */
     @Override
     public void configurePathMatching(PathMatchConfigurer configurer) {
-        configurer.addPathPrefix("/api",
+        configurer.addPathPrefix("/api/v1",
                 HandlerTypePredicate.forAnnotation(RestController.class)
                         .and(HandlerTypePredicate.forAssignableType(MockPercentageController.class).negate())
                         .and(HandlerTypePredicate.forBasePackage("org.springdoc").negate()));

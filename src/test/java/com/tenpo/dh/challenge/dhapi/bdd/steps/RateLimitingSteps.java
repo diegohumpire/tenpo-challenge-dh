@@ -28,12 +28,12 @@ public class RateLimitingSteps {
         this.clientIp = ip;
     }
 
-    @When("envío {int} solicitudes POST /api/1/calculations en menos de 60 segundos")
+    @When("envío {int} solicitudes POST /api/v1/calculations en menos de 60 segundos")
     public void envíoNSolicitudesPost(int count) {
         responses.clear();
         for (int i = 0; i < count; i++) {
             responses.add(webTestClient.post()
-                    .uri("/api/1/calculations")
+                    .uri("/api/v1/calculations")
                     .header("X-Forwarded-For", clientIp)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(Map.of("num1", 5.0, "num2", 5.0))
@@ -45,7 +45,7 @@ public class RateLimitingSteps {
     public void yaSeRealizaronNSolicitudes(int count) {
         for (int i = 0; i < count; i++) {
             webTestClient.post()
-                    .uri("/api/1/calculations")
+                    .uri("/api/v1/calculations")
                     .header("X-Forwarded-For", clientIp)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(Map.of("num1", 1.0, "num2", 1.0))
@@ -54,10 +54,10 @@ public class RateLimitingSteps {
         }
     }
 
-    @When("envío una cuarta solicitud POST /api/1/calculations")
+    @When("envío una cuarta solicitud POST /api/v1/calculations")
     public void envíoUnaCuartaSolicitud() {
         lastResponse = webTestClient.post()
-                .uri("/api/1/calculations")
+                .uri("/api/v1/calculations")
                 .header("X-Forwarded-For", clientIp)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(Map.of("num1", 5.0, "num2", 5.0))

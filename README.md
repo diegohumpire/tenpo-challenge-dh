@@ -109,11 +109,11 @@ java -jar target/dhapi-1.0.0.jar
 
 ## Endpoints
 
-### POST /api/1/calculations
+### POST /api/v1/calculations
 Calcula `(num1 + num2) * (1 + porcentaje/100)`.
 
 ```bash
-curl -X POST http://localhost:8080/api/1/calculations \
+curl -X POST http://localhost:8080/api/v1/calculations \
   -H "Content-Type: application/json" \
   -d '{"num1": 100, "num2": 50}'
 ```
@@ -135,11 +135,11 @@ curl -X POST http://localhost:8080/api/1/calculations \
 
 ---
 
-### GET /api/1/audit-logs
+### GET /api/v1/audit-logs
 Lista el historial de todas las llamadas API con paginación.
 
 ```bash
-curl "http://localhost:8080/api/1/audit-logs?page=0&size=10"
+curl "http://localhost:8080/api/v1/audit-logs?page=0&size=10"
 ```
 
 **Respuesta 200:**
@@ -149,7 +149,7 @@ curl "http://localhost:8080/api/1/audit-logs?page=0&size=10"
     {
       "id": 1,
       "timestamp": "2024-01-15T10:30:00",
-      "endpoint": "/api/1/calculations",
+      "endpoint": "/api/v1/calculations",
       "method": "POST",
       "requestBody": "{\"num1\":100,\"num2\":50}",
       "responseBody": "{\"result\":165.0,...}",
