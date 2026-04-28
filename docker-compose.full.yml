@@ -33,6 +33,31 @@ services:
       timeout: 5s
       retries: 5
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tenpo-api
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/tenpo_db
+      SPRING_R2DBC_USERNAME: tenpo
+      SPRING_R2DBC_PASSWORD: tenpo_pass
+      SPRING_FLYWAY_URL: jdbc:postgresql://postgres:5432/tenpo_db
+      SPRING_FLYWAY_USER: tenpo
+      SPRING_FLYWAY_PASSWORD: tenpo_pass
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tenpo-network
+
 volumes:
   pgdata:
   redisdata:
