@@ -19,7 +19,7 @@ spring:
             host: localhost
             port: 6379
 
-mock:
-    percentage:
+percentage:
+    provider: memory
+    in-memory:
         value: 10.0
-        fail: false

@@ -1,6 +1,5 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web.filter;
 
-import com.tenpo.dh.challenge.dhapi.domain.exception.RateLimitExceededException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -70,7 +69,7 @@ class RateLimitingFilterTest {
     }
 
     @Test
-    void filter_fourthRequest_throwsRateLimitExceeded() {
+    void filter_fourthRequest_returns429Response() {
         when(valueOps.increment(anyString())).thenReturn(Mono.just(4L));
         when(redisTemplate.getExpire(anyString())).thenReturn(Mono.just(Duration.ofSeconds(45)));
 
@@ -78,8 +77,10 @@ class RateLimitingFilterTest {
                 MockServerHttpRequest.post("/api/v1/calculations").build());
 
         StepVerifier.create(filter.filter(exchange, chain))
-                .expectError(RateLimitExceededException.class)
-                .verify();
+                .verifyComplete();
+
+        assert exchange.getResponse().getStatusCode() != null;
+        assert exchange.getResponse().getStatusCode().value() == 429;
     }
 
     @Test

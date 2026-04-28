@@ -188,6 +188,44 @@ http://localhost:8080/swagger-ui.html
 - **Tests de integración** — DhapiApplicationTests (Spring Boot + Testcontainers)
 - **BDD/Cucumber** — 4 features: cálculo, caché, rate limiting, audit logs
 
+## Percentage Provider
+
+El porcentaje utilizado en el cálculo puede ser provisto por tres modos distintos, configurados con `PERCENTAGE_PROVIDER`:
+
+| Modo | Descripción |
+|---|---|
+| `memory` | Responde siempre un valor fijo (default `10.0`). Ideal para desarrollo rápido. |
+| `postman-mock` | Apunta a un mock de Postman. Permite controlar la respuesta via headers. |
+| cualquier otro | Servicio externo real configurado con `PERCENTAGE_EXTERNAL_*`. |
+
+### Headers de control para pruebas
+
+Disponibles en modos `memory` y `postman-mock`:
+
+| Header | Tipo | Descripción |
+|---|---|---|
+| `x-mock-percentage` | Numérico | **`memory`**: sobreescribe el valor de porcentaje.<br>**`postman-mock`**: se reenvía a Postman como header. |
+| `x-mock-response-code` | HTTP code | **`memory`**: si es non-2xx → simula falla del servicio externo (sin caché → 503).<br>**`postman-mock`**: se reenvía a Postman como header. |
+
+```bash
+# Usar porcentaje custom
+curl -X POST http://localhost:8080/api/v1/calculations \
+  -H "Content-Type: application/json" \
+  -H "x-mock-percentage: 25" \
+  -d '{"num1": 100, "num2": 50}'
+
+# Simular falla del servicio externo (vaciar cache Redis primero)
+curl -X POST http://localhost:8080/api/v1/calculations \
+  -H "Content-Type: application/json" \
+  -H "x-mock-response-code: 503" \
+  -d '{"num1": 100, "num2": 50}'
+```
+
+> **Nota:** cuando el provider falla, `PercentageService` hace fallback al último valor en caché Redis.
+> Un 503 sólo se propaga si el caché también está vacío.
+
+---
+
 ## Rate Limiting
 
 Se implementa con Redis usando el patrón INCR + EXPIRE:
@@ -225,7 +263,11 @@ Todas las propiedades de conexión soportan variables de entorno con fallback a 
 | `SPRING_FLYWAY_PASSWORD` | `tenpo_pass` | Contraseña Flyway |
 | `SPRING_DATA_REDIS_HOST` | `localhost` | Host de Redis |
 | `SPRING_DATA_REDIS_PORT` | `6379` | Puerto de Redis |
-| `MOCK_PERCENTAGE_VALUE` | `10.0` | Valor del porcentaje simulado |
-| `MOCK_PERCENTAGE_FAIL` | `false` | `true` simula fallo del servicio externo |
+| `PERCENTAGE_PROVIDER` | `memory` | Proveedor de porcentaje (`memory`, `postman-mock`, o cualquier otro valor para externo) |
+| `PERCENTAGE_MEMORY_VALUE` | `10.0` | Porcentaje fijo usado en modo `memory` |
+| `PERCENTAGE_POSTMAN_BASE_URL` | `https://ec995055-c0c3-4482-aa85-89f5660540f0.mock.pstmn.io` | URL base del mock de Postman |
+| `PERCENTAGE_POSTMAN_PATH` | `/mock/percentage` | Path del endpoint de Postman |
+| `PERCENTAGE_EXTERNAL_BASE_URL` | `http://localhost:8080` | URL base del servicio externo real |
+| `PERCENTAGE_EXTERNAL_PATH` | `/percentage` | Path del endpoint externo |
 | `RATE_LIMIT_MAX_REQUESTS` | `3` | Requests máximos por ventana |
 | `RATE_LIMIT_WINDOW_SECONDS` | `60` | Tamaño de la ventana en segundos |

@@ -27,10 +27,18 @@ spring:
             host: ${SPRING_DATA_REDIS_HOST:localhost}
             port: ${SPRING_DATA_REDIS_PORT:6379}
 
-mock:
-    percentage:
-        value: ${MOCK_PERCENTAGE_VALUE:10.0}
-        fail: ${MOCK_PERCENTAGE_FAIL:false}
+percentage:
+    # Selects the PercentageProvider implementation.
+    # Values: memory | postman-mock | external (default)
+    provider: ${PERCENTAGE_PROVIDER:memory}
+    in-memory:
+        value: ${PERCENTAGE_MEMORY_VALUE:10.0}
+    postman-mock:
+        base-url: ${PERCENTAGE_POSTMAN_BASE_URL:https://ec995055-c0c3-4482-aa85-89f5660540f0.mock.pstmn.io}
+        path: ${PERCENTAGE_POSTMAN_PATH:/mock/percentage}
+    external:
+        base-url: ${PERCENTAGE_EXTERNAL_BASE_URL:http://localhost:8080}
+        path: ${PERCENTAGE_EXTERNAL_PATH:/percentage}
 
 rate-limit:
     max-requests: ${RATE_LIMIT_MAX_REQUESTS:3}

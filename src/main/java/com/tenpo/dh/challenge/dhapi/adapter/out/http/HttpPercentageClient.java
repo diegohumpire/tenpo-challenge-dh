@@ -1,9 +1,8 @@
 package com.tenpo.dh.challenge.dhapi.adapter.out.http;
 
+import com.tenpo.dh.challenge.dhapi.config.PercentageProperties;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
@@ -11,21 +10,26 @@ import reactor.util.retry.Retry;
 import java.math.BigDecimal;
 import java.time.Duration;
 
+/**
+ * {@link PercentageProvider} that delegates to a real external HTTP service.
+ * Configured via {@code percentage.external.*} properties.
+ * Does not apply any mock-header logic.
+ */
 @Slf4j
-@Component
 public class HttpPercentageClient implements PercentageProvider {
 
     private final WebClient webClient;
+    private final String path;
 
-    public HttpPercentageClient(WebClient.Builder builder,
-                                @Value("${mock.percentage.base-url:http://localhost:8080}") String baseUrl) {
-        this.webClient = builder.baseUrl(baseUrl).build();
+    public HttpPercentageClient(WebClient.Builder builder, PercentageProperties properties) {
+        this.webClient = builder.baseUrl(properties.getExternal().getBaseUrl()).build();
+        this.path = properties.getExternal().getPath();
     }
 
     @Override
     public Mono<BigDecimal> getPercentage() {
         return webClient.get()
-                .uri("/mock/percentage")
+                .uri(path)
                 .retrieve()
                 .bodyToMono(PercentageResponse.class)
                 .map(PercentageResponse::percentage)

@@ -1,17 +1,21 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web.filter;
 
-import com.tenpo.dh.challenge.dhapi.domain.exception.RateLimitExceededException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 
@@ -63,9 +67,7 @@ public class RateLimitingFilter implements WebFilter {
                     exchange.getResponse().getHeaders().add("Retry-After", String.valueOf(retryAfter));
                     exchange.getResponse().getHeaders().add("X-RateLimit-Reset",
                             String.valueOf(System.currentTimeMillis() / 1000 + retryAfter));
-                    return Mono.error(new RateLimitExceededException(String.format(
-                            "Ha excedido el límite de %d solicitudes por minuto. Intente nuevamente en %d segundos.",
-                            maxRequests, retryAfter)));
+                    return writeRateLimitResponse(exchange, retryAfter);
                 });
             }
 
@@ -75,6 +77,22 @@ public class RateLimitingFilter implements WebFilter {
 
     private boolean isExcluded(String path) {
         return EXCLUDED_PREFIXES.stream().anyMatch(path::startsWith);
+    }
+
+    private Mono<Void> writeRateLimitResponse(ServerWebExchange exchange, long retryAfter) {
+        String message = String.format(
+                "Ha excedido el límite de %d solicitudes por minuto. Intente nuevamente en %d segundos.",
+                maxRequests, retryAfter);
+        String body = String.format(
+                "{\"status\":429,\"title\":\"Too Many Requests\",\"detail\":\"%s\",\"type\":\"%s\"}",
+                message, URI.create("about:blank"));
+        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+
+        exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
+        exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_PROBLEM_JSON);
+
+        DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(bytes);
+        return exchange.getResponse().writeWith(Mono.just(buffer));
     }
 
     private String resolveClientIp(ServerWebExchange exchange) {
