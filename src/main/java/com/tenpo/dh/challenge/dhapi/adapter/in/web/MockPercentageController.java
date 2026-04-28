@@ -1,6 +1,8 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web;
 
 import com.tenpo.dh.challenge.dhapi.adapter.out.http.PercentageResponse;
+import com.tenpo.dh.challenge.dhapi.annotation.NonVersionApi;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -9,6 +11,7 @@ import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 
+@NonVersionApi
 @RestController
 @RequestMapping("/mock")
 public class MockPercentageController {
