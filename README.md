@@ -180,6 +180,7 @@ http://localhost:8080/swagger-ui.html
 ./mvnw test
 
 # Tests de integración + BDD (requieren Docker)
+docker compose up -d
 ./mvnw test -P integration-tests
 ```
 
@@ -264,6 +265,7 @@ Todas las propiedades de conexión soportan variables de entorno con fallback a 
 | `SPRING_DATA_REDIS_HOST` | `localhost` | Host de Redis |
 | `SPRING_DATA_REDIS_PORT` | `6379` | Puerto de Redis |
 | `PERCENTAGE_PROVIDER` | `memory` | Proveedor de porcentaje (`memory`, `postman-mock`, o cualquier otro valor para externo) |
+| `PERCENTAGE_CACHE_TTL` | `1800` | TTL del caché de porcentaje en segundos (default: 30 min) |
 | `PERCENTAGE_MEMORY_VALUE` | `10.0` | Porcentaje fijo usado en modo `memory` |
 | `PERCENTAGE_POSTMAN_BASE_URL` | `https://ec995055-c0c3-4482-aa85-89f5660540f0.mock.pstmn.io` | URL base del mock de Postman |
 | `PERCENTAGE_POSTMAN_PATH` | `/mock/percentage` | Path del endpoint de Postman |

@@ -1,8 +1,8 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web.filter;
 
+import com.tenpo.dh.challenge.dhapi.config.RateLimitProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
@@ -32,12 +32,7 @@ public class RateLimitingFilter implements WebFilter {
             "/webjars", "/mock/percentage");
 
     private final ReactiveRedisTemplate<String, String> redisTemplate;
-
-    @Value("${rate-limit.max-requests:3}")
-    private int maxRequests;
-
-    @Value("${rate-limit.window-seconds:60}")
-    private long windowSeconds;
+    private final RateLimitProperties rateLimitProperties;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
@@ -51,19 +46,19 @@ public class RateLimitingFilter implements WebFilter {
 
         return redisTemplate.opsForValue().increment(key).flatMap(count -> {
             if (count == 1) {
-                return redisTemplate.expire(key, Duration.ofSeconds(windowSeconds)).thenReturn(count);
+                return redisTemplate.expire(key, Duration.ofSeconds(rateLimitProperties.getWindowSeconds())).thenReturn(count);
             }
             return Mono.just(count);
         }).flatMap(count -> {
-            long remaining = Math.max(0, maxRequests - count);
+            long remaining = Math.max(0, rateLimitProperties.getMaxRequests() - count);
 
-            exchange.getResponse().getHeaders().add("X-RateLimit-Limit", String.valueOf(maxRequests));
+            exchange.getResponse().getHeaders().add("X-RateLimit-Limit", String.valueOf(rateLimitProperties.getMaxRequests()));
             exchange.getResponse().getHeaders().add("X-RateLimit-Remaining", String.valueOf(remaining));
 
-            if (count > maxRequests) {
+            if (count > rateLimitProperties.getMaxRequests()) {
                 log.warn("Rate limit exceeded for IP={}, count={}", clientIp, count);
                 return redisTemplate.getExpire(key).flatMap(ttl -> {
-                    long retryAfter = ttl.getSeconds() > 0 ? ttl.getSeconds() : windowSeconds;
+                    long retryAfter = ttl.getSeconds() > 0 ? ttl.getSeconds() : rateLimitProperties.getWindowSeconds();
                     exchange.getResponse().getHeaders().add("Retry-After", String.valueOf(retryAfter));
                     exchange.getResponse().getHeaders().add("X-RateLimit-Reset",
                             String.valueOf(System.currentTimeMillis() / 1000 + retryAfter));
@@ -82,7 +77,7 @@ public class RateLimitingFilter implements WebFilter {
     private Mono<Void> writeRateLimitResponse(ServerWebExchange exchange, long retryAfter) {
         String message = String.format(
                 "Ha excedido el límite de %d solicitudes por minuto. Intente nuevamente en %d segundos.",
-                maxRequests, retryAfter);
+                rateLimitProperties.getMaxRequests(), retryAfter);
         String body = String.format(
                 "{\"status\":429,\"title\":\"Too Many Requests\",\"detail\":\"%s\",\"type\":\"%s\"}",
                 message, URI.create("about:blank"));

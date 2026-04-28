@@ -10,9 +10,16 @@ import java.math.BigDecimal;
 public class PercentageProperties {
 
     private String provider = "memory";
+    private Cache cache = new Cache();
     private InMemory inMemory = new InMemory();
     private PostmanMock postmanMock = new PostmanMock();
     private External external = new External();
+
+    @Data
+    public static class Cache {
+        /** Cache TTL in seconds. Default: 1800 (30 minutes). */
+        private long ttl = 1800;
+    }
 
     @Data
     public static class InMemory {

@@ -1,5 +1,6 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web.filter;
 
+import com.tenpo.dh.challenge.dhapi.config.RateLimitProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,7 +12,6 @@ import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.ReactiveValueOperations;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -38,9 +38,10 @@ class RateLimitingFilterTest {
 
     @BeforeEach
     void setUp() {
-        filter = new RateLimitingFilter(redisTemplate);
-        ReflectionTestUtils.setField(filter, "maxRequests", 3);
-        ReflectionTestUtils.setField(filter, "windowSeconds", 60L);
+        RateLimitProperties props = new RateLimitProperties();
+        props.setMaxRequests(3);
+        props.setWindowSeconds(60L);
+        filter = new RateLimitingFilter(redisTemplate, props);
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
         when(chain.filter(any())).thenReturn(Mono.empty());
     }

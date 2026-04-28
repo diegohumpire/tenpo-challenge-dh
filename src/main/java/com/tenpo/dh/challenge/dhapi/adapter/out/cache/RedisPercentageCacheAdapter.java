@@ -1,5 +1,6 @@
 package com.tenpo.dh.challenge.dhapi.adapter.out.cache;
 
+import com.tenpo.dh.challenge.dhapi.config.PercentageProperties;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageCacheStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,9 +17,9 @@ import java.time.Duration;
 public class RedisPercentageCacheAdapter implements PercentageCacheStore {
 
     private static final String CACHE_KEY = "percentage:current";
-    private static final Duration TTL = Duration.ofMinutes(30);
 
     private final ReactiveRedisTemplate<String, String> redisTemplate;
+    private final PercentageProperties properties;
 
     @Override
     public Mono<BigDecimal> get() {
@@ -31,9 +32,10 @@ public class RedisPercentageCacheAdapter implements PercentageCacheStore {
 
     @Override
     public Mono<Void> put(BigDecimal percentage) {
+        Duration ttl = Duration.ofSeconds(properties.getCache().getTtl());
         return redisTemplate.opsForValue()
-                .set(CACHE_KEY, percentage.toPlainString(), TTL)
-                .doOnNext(ok -> log.debug("Cached percentage={} TTL=30min", percentage))
+                .set(CACHE_KEY, percentage.toPlainString(), ttl)
+                .doOnNext(ok -> log.debug("Cached percentage={} TTL={}s", percentage, ttl.getSeconds()))
                 .then();
     }
 }
