@@ -165,24 +165,6 @@ curl "http://localhost:8080/api/v1/audit-logs?page=0&size=10"
   "totalPages": 1
 }
 ```
-
----
-
-### GET /mock/percentage
-Endpoint de prueba que simula el servicio externo de porcentaje.
-
-```bash
-curl http://localhost:8080/mock/percentage
-```
-
-Configurable via `application.yaml`:
-```yaml
-mock:
-  percentage:
-    value: 10.0    # porcentaje retornado
-    fail: false    # true = simula fallo del servicio
-```
-
 ---
 
 ### Swagger UI
@@ -218,20 +200,6 @@ Se implementa con Redis usando el patrón INCR + EXPIRE:
 - **Respuesta 429** incluye `Retry-After` header
 
 ## Arquitectura
-
-```
-com.tenpo.dh.challenge.dhapi
-├── domain/
-│   ├── model/        ← Calculation, AuditLog, enums (sin dependencias de infra)
-│   ├── port/in/      ← CalculationUseCase, AuditLogUseCase
-│   ├── port/out/     ← PercentageProvider, PercentageCacheStore, AuditLogRepository
-│   └── exception/    ← PercentageNotAvailableException, RateLimitExceededException
-├── application/
-│   └── service/      ← CalculationService, PercentageService, AuditLogService
-└── adapter/
-    ├── in/web/       ← Controllers, Filters, DTOs, GlobalExceptionHandler
-    └── out/          ← R2DBC persistence, Redis cache, HTTP client
-```
 
 **Decisiones técnicas:**
 - **Arquitectura hexagonal**: el dominio es agnóstico a Spring/infra; facilita testing y reemplazabilidad de adaptadores

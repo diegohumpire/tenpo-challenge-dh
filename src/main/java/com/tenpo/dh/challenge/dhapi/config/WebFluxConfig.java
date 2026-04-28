@@ -2,18 +2,12 @@ package com.tenpo.dh.challenge.dhapi.config;
 
 import com.tenpo.dh.challenge.dhapi.annotation.NonVersionApi;
 
-import jakarta.annotation.Nullable;
-
 import org.springframework.context.annotation.Configuration;
-import org.springframework.util.StringUtils;
-import org.springframework.web.accept.ApiVersionParser;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.method.HandlerTypePredicate;
-import org.springframework.web.reactive.accept.ApiVersionResolver;
 import org.springframework.web.reactive.config.ApiVersionConfigurer;
 import org.springframework.web.reactive.config.PathMatchConfigurer;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
-import org.springframework.web.server.ServerWebExchange;
 
 @Configuration
 public class WebFluxConfig implements WebFluxConfigurer {
@@ -21,13 +15,10 @@ public class WebFluxConfig implements WebFluxConfigurer {
     @Override
     public void configureApiVersioning(ApiVersionConfigurer configurer) {
         configurer
+                .usePathSegment(1)
                 .addSupportedVersions("1", "2")
                 .setDefaultVersion("1")
-                .setVersionRequired(false)
-                // Use a flexible resolver that parses the version only after verifying the path
-                // structure
-                .useVersionResolver(new ApiPathVersionResolver())
-                .setVersionParser(new SimpleVersionParser());
+                .setVersionRequired(false);
     }
 
     /**
@@ -38,51 +29,10 @@ public class WebFluxConfig implements WebFluxConfigurer {
     @Override
     public void configurePathMatching(PathMatchConfigurer configurer) {
         configurer.addPathPrefix(
-                "/api/v{version:(?:1|2)}",
+                "/api/v{version}",
                 HandlerTypePredicate.forAnnotation(RestController.class)
                         .and(HandlerTypePredicate.forBasePackage("org.springdoc").negate())
                         .and(HandlerTypePredicate.forAnnotation(NonVersionApi.class).negate()) // Exclude exceptional
         );
-    }
-
-    /**
-     * * A flexible resolver that verifies the path structure and parses the version
-     */
-    private static class ApiPathVersionResolver implements ApiVersionResolver {
-
-        @Override
-        public @Nullable String resolveVersion(ServerWebExchange exchange) {
-            String uri = exchange.getRequest().getURI().getPath();
-            if (uri == null || !uri.startsWith("/api/v")) {
-                return null; // Ignore APIs that do not follow version rules
-            }
-
-            int start = 6; // Start point after "/api/v"
-            int end = uri.indexOf('/', start);
-
-            if (end != -1) {
-                return uri.substring(start, end);
-            }
-            return null;
-        }
-    }
-
-    /**
-     * * Parser that converts version strings into the standard format used
-     * internally.
-     */
-    private static class SimpleVersionParser implements ApiVersionParser<String> {
-
-        @Override
-        public String parseVersion(String version) {
-            if (!StringUtils.hasText(version)) {
-                return null;
-            }
-            if (version.startsWith("v") || version.startsWith("V")) {
-                version = version.substring(1);
-            }
-            int dotIndex = version.indexOf('.');
-            return dotIndex == -1 ? version : version.substring(0, dotIndex);
-        }
     }
 }
