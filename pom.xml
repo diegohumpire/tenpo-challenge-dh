@@ -118,6 +118,13 @@
 			<artifactId>micrometer-tracing-bridge-brave</artifactId>
 		</dependency>
 
+		<!-- ===== DOCKER COMPOSE (dev: auto-start services with spring-boot:run) ===== -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-docker-compose</artifactId>
+			<optional>true</optional>
+		</dependency>
+
 		<!-- ===== UTILITIES ===== -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>

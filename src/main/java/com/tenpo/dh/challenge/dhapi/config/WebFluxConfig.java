@@ -3,10 +3,12 @@ package com.tenpo.dh.challenge.dhapi.config;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.config.ApiVersionConfigurer;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
 public class WebFluxConfig implements WebFluxConfigurer {
@@ -20,6 +22,12 @@ public class WebFluxConfig implements WebFluxConfigurer {
     }
 
     @Bean
+    @ConditionalOnMissingBean
+    public WebClient.Builder webClientBuilder() {
+        return WebClient.builder();
+    }
+
+    @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info()
@@ -29,3 +37,4 @@ public class WebFluxConfig implements WebFluxConfigurer {
                         .contact(new Contact().name("Diego Humpire").url("https://github.com/diegohumpire")));
     }
 }
+
