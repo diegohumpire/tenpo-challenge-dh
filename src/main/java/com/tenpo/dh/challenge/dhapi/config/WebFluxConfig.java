@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.method.HandlerTypePredicate;
-import org.springframework.web.reactive.config.ApiVersionConfigurer;
 import org.springframework.web.reactive.config.PathMatchConfigurer;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -17,13 +16,11 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class WebFluxConfig implements WebFluxConfigurer {
 
-    @Override
-    public void configureApiVersioning(ApiVersionConfigurer configurer) {
-        configurer.usePathSegment(1)
-                .addSupportedVersions("1")
-                .setDefaultVersion("1");
-    }
-
+    /**
+     * Adds /api prefix to all versioned @RestController beans.
+     * MockPercentageController (/mock/**) and springdoc (/v3/**, /swagger-ui**)
+     * are explicitly excluded so they remain unversioned.
+     */
     @Override
     public void configurePathMatching(PathMatchConfigurer configurer) {
         configurer.addPathPrefix("/api",

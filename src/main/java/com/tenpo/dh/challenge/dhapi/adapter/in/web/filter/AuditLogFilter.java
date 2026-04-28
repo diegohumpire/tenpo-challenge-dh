@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class AuditLogFilter implements WebFilter {
 
     private static final List<String> EXCLUDED_PREFIXES = List.of(
-            "/actuator", "/swagger-ui", "/v3/api-docs", "/mock", "/webjars");
+            "/actuator", "/swagger-ui", "/v3/api-docs", "/mock", "/webjars", "/mock/percentage");
 
     private final AuditLogUseCase auditLogUseCase;
 

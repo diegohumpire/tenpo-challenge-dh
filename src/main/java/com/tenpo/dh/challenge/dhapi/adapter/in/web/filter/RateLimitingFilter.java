@@ -21,10 +21,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RateLimitingFilter implements WebFilter {
 
-    // Warning: Excluir rutas de documentación y mock para evitar interferencias en pruebas y desarrollo
-    // Warning: En teoria, no deberian de llegar a produccion. Excepto el `actuator`.
+    // Excluir rutas de documentación y mock para evitar interferencias en pruebas y
+    // desarrollo
+    // En teoria, no deberian de llegar a produccion. Excepto el `actuator`.
     private static final List<String> EXCLUDED_PREFIXES = List.of("/actuator", "/swagger-ui", "/v3/api-docs", "/mock",
-            "/webjars");
+            "/webjars", "/mock/percentage");
 
     private final ReactiveRedisTemplate<String, String> redisTemplate;
 

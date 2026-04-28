@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/audit-logs")
+@RequestMapping("/{version}/audit-logs")
 @RequiredArgsConstructor
 @Tag(name = "Audit Logs", description = "Endpoint for querying the API call history")
 public class AuditLogController {
@@ -27,7 +27,7 @@ public class AuditLogController {
 
     @Operation(summary = "Get paginated audit log history", description = "Returns a paginated list of all API calls recorded in the system")
     @ApiResponse(responseCode = "200", description = "Audit logs retrieved successfully")
-    @GetMapping(version = "1")
+    @GetMapping
     public Mono<ResponseEntity<PageResponse<AuditLogResponse>>> getAuditLogs(
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size (max 100)") @RequestParam(defaultValue = "20") int size,

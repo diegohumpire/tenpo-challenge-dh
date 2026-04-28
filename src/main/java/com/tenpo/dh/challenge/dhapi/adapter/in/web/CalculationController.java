@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/calculations")
+@RequestMapping("/{version}/calculations")
 @RequiredArgsConstructor
 @Tag(name = "Calculations", description = "Endpoint for performing calculations with dynamic percentage")
 public class CalculationController {
@@ -33,7 +33,7 @@ public class CalculationController {
             @ApiResponse(responseCode = "429", description = "Rate limit exceeded"),
             @ApiResponse(responseCode = "503", description = "External percentage service unavailable")
     })
-    @PostMapping(version = "1")
+    @PostMapping
     public Mono<ResponseEntity<CalculationResponse>> calculate(
             @Valid @RequestBody CalculationRequest request) {
         return calculationUseCase.calculate(request.num1(), request.num2())
