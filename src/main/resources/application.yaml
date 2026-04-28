@@ -3,30 +3,29 @@ spring:
         name: dhapi
     docker:
         compose:
-            enabled: true
-            lifecycle-management: start-and-stop
+            enabled: false
 
     r2dbc:
-        url: r2dbc:postgresql://localhost:5432/tenpo_db
-        username: tenpo
-        password: tenpo_pass
+        url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/tenpo_db}
+        username: ${SPRING_R2DBC_USERNAME:tenpo}
+        password: ${SPRING_R2DBC_PASSWORD:tenpo_pass}
 
     datasource:
-        url: jdbc:postgresql://localhost:5432/tenpo_db
-        username: tenpo
-        password: tenpo_pass
+        url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/tenpo_db}
+        username: ${SPRING_DATASOURCE_USERNAME:tenpo}
+        password: ${SPRING_DATASOURCE_PASSWORD:tenpo_pass}
         driver-class-name: org.postgresql.Driver
 
     flyway:
-        url: jdbc:postgresql://localhost:5432/tenpo_db
-        user: tenpo
-        password: tenpo_pass
+        url: ${SPRING_FLYWAY_URL:jdbc:postgresql://localhost:5432/tenpo_db}
+        user: ${SPRING_FLYWAY_USER:tenpo}
+        password: ${SPRING_FLYWAY_PASSWORD:tenpo_pass}
         enabled: true
 
     data:
         redis:
-            host: localhost
-            port: 6379
+            host: ${SPRING_DATA_REDIS_HOST:localhost}
+            port: ${SPRING_DATA_REDIS_PORT:6379}
 
     webflux:
         apiversion:
@@ -37,33 +36,15 @@ spring:
 
 mock:
     percentage:
-        value: 10.0
-        fail: false
+        value: ${MOCK_PERCENTAGE_VALUE:10.0}
+        fail: ${MOCK_PERCENTAGE_FAIL:false}
 
 rate-limit:
-    max-requests: 3
-    window-seconds: 60
+    max-requests: ${RATE_LIMIT_MAX_REQUESTS:3}
+    window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:60}
 
 springdoc:
     api-docs:
         path: /v3/api-docs
     swagger-ui:
         path: /swagger-ui.html
-
----
-spring:
-    config:
-        activate:
-            on-profile: docker
-    docker:
-        compose:
-            enabled: false
-    r2dbc:
-        url: r2dbc:postgresql://postgres:5432/tenpo_db
-    datasource:
-        url: jdbc:postgresql://postgres:5432/tenpo_db
-    flyway:
-        url: jdbc:postgresql://postgres:5432/tenpo_db
-    data:
-        redis:
-            host: redis

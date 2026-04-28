@@ -27,40 +27,88 @@ REST API reactiva construida con **Spring Boot 4 / WebFlux** para el challenge t
 
 - Java 21+
 - Docker & Docker Compose
-- (Opcional) Maven 3.9+ para desarrollo local
+- (Opcional) Maven 3.9+
 
-## Ejecución con Docker Compose
+---
 
-```bash
-# Construir imagen y levantar todo el stack (API + PostgreSQL + Redis)
-docker compose up --build
+## Formas de ejecutar la aplicación
 
-# En background
-docker compose up --build -d
+### 1. `./mvnw spring-boot:run` — Desarrollo local (recomendado)
 
-# Ver logs de la API
-docker compose logs -f api
-
-# Detener todo
-docker compose down -v
-```
-
-La API quedará disponible en **http://localhost:8080**
-
-## Ejecución local (sin Docker)
-
-Requiere PostgreSQL y Redis corriendo localmente:
+Activa automáticamente el perfil `docker`, que levanta **PostgreSQL + Redis** vía Docker Compose
+usando `spring-boot-docker-compose`. No se necesita ningún paso adicional.
 
 ```bash
-# Instalar dependencias y compilar
-./mvnw clean package -DskipTests
-
-# Levantar servicios locales (alternativa)
-docker compose up postgres redis -d
-
-# Ejecutar la aplicación
 ./mvnw spring-boot:run
 ```
+
+Spring Boot inicia los servicios del `docker-compose.yml`, ejecuta las migraciones Flyway
+y levanta la API en **http://localhost:8080**.
+
+Para detener: `Ctrl+C` (baja los contenedores automáticamente).
+
+---
+
+### 2. `docker compose -f docker-compose.full.yml up` — Stack completo en Docker
+
+Construye la imagen de la API y levanta todo (API + PostgreSQL + Redis) como contenedores.
+
+```bash
+# Construir imagen y levantar el stack completo
+docker compose -f docker-compose.full.yml up --build
+
+# En background
+docker compose -f docker-compose.full.yml up --build -d
+
+# Ver logs de la API
+docker compose -f docker-compose.full.yml logs -f api
+
+# Detener y limpiar volúmenes
+docker compose -f docker-compose.full.yml down -v
+```
+
+La API quedará disponible en **http://localhost:8080**.
+
+---
+
+### 3. Infraestructura manual + app local
+
+Si ya tenés PostgreSQL y Redis corriendo (o querés iniciarlos por separado):
+
+```bash
+# Opción A: levantar solo la infraestructura con Docker
+docker compose up -d
+
+# Opción B: servicios locales ya corriendo en localhost:5432 y localhost:6379
+# (no requiere Docker)
+
+# Ejecutar la app sin activar docker-compose automático
+./mvnw spring-boot:run -Dspring-boot.run.profiles=
+```
+
+> Las variables de entorno siguen siendo aplicables en cualquier caso (ver sección abajo).
+
+---
+
+### 4. JAR standalone
+
+```bash
+# Construir el JAR
+./mvnw clean package -DskipTests
+
+# Ejecutar (conecta a localhost por defecto)
+java -jar target/dhapi-1.0.0.jar
+
+# Con perfil docker (auto-inicia docker-compose)
+java -jar target/dhapi-1.0.0.jar --spring.profiles.active=docker
+
+# Con variables de entorno personalizadas
+SPRING_R2DBC_URL=r2dbc:postgresql://myhost:5432/mydb \
+SPRING_DATA_REDIS_HOST=myredis \
+java -jar target/dhapi-1.0.0.jar
+```
+
+---
 
 ## Endpoints
 
@@ -195,14 +243,24 @@ com.tenpo.dh.challenge.dhapi
 - **Redis sliding window**: para rate limiting en entornos multi-réplica; INCR + EXPIRE es atómico por primera llamada
 - **Retry con backoff exponencial**: el cliente HTTP usa `Retry.backoff(3, 1s, max 5s)` para reintentos ante fallos transitorios
 
-## Variables de entorno (Docker)
+## Variables de entorno
 
-| Variable | Default | Descripción |
+Todas las propiedades de conexión soportan variables de entorno con fallback a valores localhost:
+
+| Variable | Fallback | Descripción |
 |---|---|---|
-| `SPRING_PROFILES_ACTIVE` | `docker` | Perfil Spring activo |
-| `SPRING_R2DBC_URL` | — | URL R2DBC de PostgreSQL |
-| `SPRING_R2DBC_USERNAME` | — | Usuario de la base de datos |
-| `SPRING_R2DBC_PASSWORD` | — | Contraseña de la base de datos |
-| `SPRING_FLYWAY_URL` | — | URL JDBC para migraciones Flyway |
+| `SPRING_R2DBC_URL` | `r2dbc:postgresql://localhost:5432/tenpo_db` | URL R2DBC de PostgreSQL |
+| `SPRING_R2DBC_USERNAME` | `tenpo` | Usuario R2DBC |
+| `SPRING_R2DBC_PASSWORD` | `tenpo_pass` | Contraseña R2DBC |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/tenpo_db` | URL JDBC (Flyway) |
+| `SPRING_DATASOURCE_USERNAME` | `tenpo` | Usuario JDBC |
+| `SPRING_DATASOURCE_PASSWORD` | `tenpo_pass` | Contraseña JDBC |
+| `SPRING_FLYWAY_URL` | `jdbc:postgresql://localhost:5432/tenpo_db` | URL JDBC para migraciones |
+| `SPRING_FLYWAY_USER` | `tenpo` | Usuario Flyway |
+| `SPRING_FLYWAY_PASSWORD` | `tenpo_pass` | Contraseña Flyway |
 | `SPRING_DATA_REDIS_HOST` | `localhost` | Host de Redis |
 | `SPRING_DATA_REDIS_PORT` | `6379` | Puerto de Redis |
+| `MOCK_PERCENTAGE_VALUE` | `10.0` | Valor del porcentaje simulado |
+| `MOCK_PERCENTAGE_FAIL` | `false` | `true` simula fallo del servicio externo |
+| `RATE_LIMIT_MAX_REQUESTS` | `3` | Requests máximos por ventana |
+| `RATE_LIMIT_WINDOW_SECONDS` | `60` | Tamaño de la ventana en segundos |
