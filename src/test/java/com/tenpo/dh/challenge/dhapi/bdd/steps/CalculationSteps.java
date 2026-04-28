@@ -25,19 +25,19 @@ public class CalculationSteps {
         // default mock returns 10% which handles this step
     }
 
-    @When("envío POST /api/v1/calculations con num1={double} y num2={double}")
+    @When("envío POST /api/1/calculations con num1={double} y num2={double}")
     public void envíoPOSTCalculationsConNum1YNum2(double num1, double num2) {
         lastResponse = webTestClient.post()
-                .uri("/api/v1/calculations")
+                .uri("/api/1/calculations")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(Map.of("num1", num1, "num2", num2))
                 .exchange();
     }
 
-    @When("envío POST /api/v1/calculations con num1=null y num2={double}")
+    @When("envío POST /api/1/calculations con num1=null y num2={double}")
     public void envíoPOSTCalculationsConNum1NullYNum2(double num2) {
         lastResponse = webTestClient.post()
-                .uri("/api/v1/calculations")
+                .uri("/api/1/calculations")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(Map.of("num2", num2))
                 .exchange();

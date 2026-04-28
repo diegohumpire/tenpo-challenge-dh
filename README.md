@@ -39,7 +39,7 @@ Igual a ejecutar el JAR directamente. Conecta a PostgreSQL y Redis en `localhost
 fallbacks de `application.yaml`. Requiere que los servicios ya estén corriendo.
 
 ```bash
-# Levantar infraestructura manualmente
+# Opcional - Levantar infraestructura localmente con Docker Compose
 docker compose up -d
 
 # Ejecutar la aplicación (perfil base, sin docker-compose automático)

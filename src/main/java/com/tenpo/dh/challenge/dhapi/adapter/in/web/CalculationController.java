@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/api/{version}/calculations")
+@RequestMapping("/calculations")
 @RequiredArgsConstructor
 @Tag(name = "Calculations", description = "Endpoint for performing calculations with dynamic percentage")
 public class CalculationController {

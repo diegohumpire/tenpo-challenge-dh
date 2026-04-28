@@ -7,12 +7,12 @@ Feature: Control de tasas (Rate Limiting)
     Given el IP del cliente es "192.168.1.100"
 
   Scenario: Tres solicitudes dentro del límite son aceptadas
-    When envío 3 solicitudes POST /api/v1/calculations en menos de 60 segundos
+    When envío 3 solicitudes POST /api/1/calculations en menos de 60 segundos
     Then las 3 respuestas tienen status 201
 
   Scenario: La cuarta solicitud en el mismo minuto es rechazada
     Given ya se realizaron 3 solicitudes en el último minuto
-    When envío una cuarta solicitud POST /api/v1/calculations
+    When envío una cuarta solicitud POST /api/1/calculations
     Then la respuesta es 429 Too Many Requests
     And el header "X-RateLimit-Remaining" es "0"
     And el header "Retry-After" está presente

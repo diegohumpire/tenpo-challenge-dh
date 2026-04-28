@@ -21,9 +21,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RateLimitingFilter implements WebFilter {
 
-    private static final List<String> EXCLUDED_PREFIXES = List.of(
-            "/actuator", "/swagger-ui", "/v3/api-docs", "/mock", "/webjars"
-    );
+    // Warning: Excluir rutas de documentación y mock para evitar interferencias en pruebas y desarrollo
+    // Warning: En teoria, no deberian de llegar a produccion. Excepto el `actuator`.
+    private static final List<String> EXCLUDED_PREFIXES = List.of("/actuator", "/swagger-ui", "/v3/api-docs", "/mock",
+            "/webjars");
 
     private final ReactiveRedisTemplate<String, String> redisTemplate;
 
@@ -43,37 +44,32 @@ public class RateLimitingFilter implements WebFilter {
         String clientIp = resolveClientIp(exchange);
         String key = "rate_limit:" + clientIp;
 
-        return redisTemplate.opsForValue()
-                .increment(key)
-                .flatMap(count -> {
-                    if (count == 1) {
-                        return redisTemplate.expire(key, Duration.ofSeconds(windowSeconds))
-                                .thenReturn(count);
-                    }
-                    return Mono.just(count);
-                })
-                .flatMap(count -> {
-                    long remaining = Math.max(0, maxRequests - count);
+        return redisTemplate.opsForValue().increment(key).flatMap(count -> {
+            if (count == 1) {
+                return redisTemplate.expire(key, Duration.ofSeconds(windowSeconds)).thenReturn(count);
+            }
+            return Mono.just(count);
+        }).flatMap(count -> {
+            long remaining = Math.max(0, maxRequests - count);
 
-                    exchange.getResponse().getHeaders().add("X-RateLimit-Limit", String.valueOf(maxRequests));
-                    exchange.getResponse().getHeaders().add("X-RateLimit-Remaining", String.valueOf(remaining));
+            exchange.getResponse().getHeaders().add("X-RateLimit-Limit", String.valueOf(maxRequests));
+            exchange.getResponse().getHeaders().add("X-RateLimit-Remaining", String.valueOf(remaining));
 
-                    if (count > maxRequests) {
-                        log.warn("Rate limit exceeded for IP={}, count={}", clientIp, count);
-                        return redisTemplate.getExpire(key)
-                                .flatMap(ttl -> {
-                                    long retryAfter = ttl.getSeconds() > 0 ? ttl.getSeconds() : windowSeconds;
-                                    exchange.getResponse().getHeaders().add("Retry-After", String.valueOf(retryAfter));
-                                    exchange.getResponse().getHeaders().add("X-RateLimit-Reset",
-                                            String.valueOf(System.currentTimeMillis() / 1000 + retryAfter));
-                                    return Mono.error(new RateLimitExceededException(
-                                            String.format("Ha excedido el límite de %d solicitudes por minuto. Intente nuevamente en %d segundos.",
-                                                    maxRequests, retryAfter)));
-                                });
-                    }
-
-                    return chain.filter(exchange);
+            if (count > maxRequests) {
+                log.warn("Rate limit exceeded for IP={}, count={}", clientIp, count);
+                return redisTemplate.getExpire(key).flatMap(ttl -> {
+                    long retryAfter = ttl.getSeconds() > 0 ? ttl.getSeconds() : windowSeconds;
+                    exchange.getResponse().getHeaders().add("Retry-After", String.valueOf(retryAfter));
+                    exchange.getResponse().getHeaders().add("X-RateLimit-Reset",
+                            String.valueOf(System.currentTimeMillis() / 1000 + retryAfter));
+                    return Mono.error(new RateLimitExceededException(String.format(
+                            "Ha excedido el límite de %d solicitudes por minuto. Intente nuevamente en %d segundos.",
+                            maxRequests, retryAfter)));
                 });
+            }
+
+            return chain.filter(exchange);
+        });
     }
 
     private boolean isExcluded(String path) {
