@@ -9,13 +9,9 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import java.time.OffsetDateTime;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class AuditLogSteps {
 
@@ -105,6 +101,7 @@ public class AuditLogSteps {
 
     @Given("el servicio de persistencia de audit logs lanza una excepción")
     public void elServicioDePersistenciaLanzaUnaExcepcion() {
-        // Audit log failures are swallowed by fire-and-forget — main response is unaffected
+        // Audit log failures are swallowed by fire-and-forget — main response is
+        // unaffected
     }
 }

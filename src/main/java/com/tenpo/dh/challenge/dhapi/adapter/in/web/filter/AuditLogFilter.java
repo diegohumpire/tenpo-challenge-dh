@@ -10,7 +10,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
@@ -27,7 +26,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -38,8 +36,7 @@ import java.util.stream.Collectors;
 public class AuditLogFilter implements WebFilter {
 
     private static final List<String> EXCLUDED_PREFIXES = List.of(
-            "/actuator", "/swagger-ui", "/v3/api-docs", "/mock", "/webjars"
-    );
+            "/actuator", "/swagger-ui", "/v3/api-docs", "/mock", "/webjars");
 
     private final AuditLogUseCase auditLogUseCase;
 
@@ -117,9 +114,9 @@ public class AuditLogFilter implements WebFilter {
 
                         auditLogUseCase.save(auditLog)
                                 .subscribe(
-                                        saved -> {},
-                                        err -> log.error("Async audit log save failed: {}", err.getMessage())
-                                );
+                                        saved -> {
+                                        },
+                                        err -> log.error("Async audit log save failed: {}", err.getMessage()));
                     } catch (Exception e) {
                         log.error("Error building audit log entry: {}", e.getMessage());
                     }
@@ -133,14 +130,17 @@ public class AuditLogFilter implements WebFilter {
     private String resolveAction(ServerHttpRequest req) {
         String path = req.getPath().value();
         String method = req.getMethod().name();
-        if (path.contains("/calculations")) return "CREATE_CALCULATION";
-        if (path.contains("/audit-logs")) return "GET_AUDIT_LOGS";
+        if (path.contains("/calculations"))
+            return "CREATE_CALCULATION";
+        if (path.contains("/audit-logs"))
+            return "GET_AUDIT_LOGS";
         return method + "_" + path.replaceAll("[^a-zA-Z0-9]", "_").toUpperCase();
     }
 
     private String formatQueryParams(ServerHttpRequest req) {
         var params = req.getQueryParams();
-        if (params.isEmpty()) return null;
+        if (params.isEmpty())
+            return null;
         return params.toSingleValueMap().entrySet().stream()
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.joining("&"));

@@ -1,14 +1,11 @@
 package com.tenpo.dh.challenge.dhapi.bdd.steps;
 
-import com.tenpo.dh.challenge.dhapi.domain.exception.PercentageNotAvailableException;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageCacheStore;
-import com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.springframework.beans.factory.annotation.Autowired;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
@@ -17,9 +14,6 @@ public class PercentageCacheSteps {
 
     @Autowired
     private PercentageCacheStore percentageCacheStore;
-
-    private Mono<BigDecimal> percentageResult;
-    private Throwable caughtException;
 
     @Given("hay un valor de porcentaje {double} en caché")
     public void hayUnValorDePorcentajeEnCache(double value) {

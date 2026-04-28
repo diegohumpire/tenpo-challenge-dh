@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +25,7 @@ public class AuditLogController {
 
     private final AuditLogUseCase auditLogUseCase;
 
-    @Operation(summary = "Get paginated audit log history",
-               description = "Returns a paginated list of all API calls recorded in the system")
+    @Operation(summary = "Get paginated audit log history", description = "Returns a paginated list of all API calls recorded in the system")
     @ApiResponse(responseCode = "200", description = "Audit logs retrieved successfully")
     @GetMapping(version = "1")
     public Mono<ResponseEntity<PageResponse<AuditLogResponse>>> getAuditLogs(
@@ -50,7 +48,8 @@ public class AuditLogController {
             String[] parts = sort.split(",");
             String field = parts[0].trim();
             Sort.Direction direction = parts.length > 1 && parts[1].trim().equalsIgnoreCase("asc")
-                    ? Sort.Direction.ASC : Sort.Direction.DESC;
+                    ? Sort.Direction.ASC
+                    : Sort.Direction.DESC;
             return Sort.by(direction, field);
         } catch (Exception e) {
             return Sort.by(Sort.Direction.DESC, "createdAt");

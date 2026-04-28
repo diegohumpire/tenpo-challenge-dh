@@ -1,8 +1,6 @@
 package com.tenpo.dh.challenge.dhapi.adapter.out.persistence;
 
-import com.tenpo.dh.challenge.dhapi.domain.model.AuditActionType;
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
-import com.tenpo.dh.challenge.dhapi.domain.model.CallDirection;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.AuditLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
