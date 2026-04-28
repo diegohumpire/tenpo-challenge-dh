@@ -1,0 +1,25 @@
+spring:
+    docker:
+        compose:
+            enabled: false
+    r2dbc:
+        url: r2dbc:postgresql://localhost:5432/tenpo_db
+        username: tenpo
+        password: tenpo_pass
+    datasource:
+        url: jdbc:postgresql://localhost:5432/tenpo_db
+        username: tenpo
+        password: tenpo_pass
+    flyway:
+        url: jdbc:postgresql://localhost:5432/tenpo_db
+        user: tenpo
+        password: tenpo_pass
+    data:
+        redis:
+            host: localhost
+            port: 6379
+
+mock:
+    percentage:
+        value: 10.0
+        fail: false

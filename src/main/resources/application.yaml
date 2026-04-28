@@ -5,3 +5,72 @@ spring:
         compose:
             enabled: true
             lifecycle-management: start-and-stop
+
+    r2dbc:
+        url: r2dbc:postgresql://localhost:5432/tenpo_db
+        username: tenpo
+        password: tenpo_pass
+
+    datasource:
+        url: jdbc:postgresql://localhost:5432/tenpo_db
+        username: tenpo
+        password: tenpo_pass
+        driver-class-name: org.postgresql.Driver
+
+    flyway:
+        url: jdbc:postgresql://localhost:5432/tenpo_db
+        user: tenpo
+        password: tenpo_pass
+        enabled: true
+
+    data:
+        redis:
+            host: localhost
+            port: 6379
+
+    webflux:
+        apiversion:
+            use:
+                path-segment: 1
+            supported: "1"
+            default: "1"
+
+mock:
+    percentage:
+        value: 10.0
+        fail: false
+
+rate-limit:
+    max-requests: 3
+    window-seconds: 60
+
+springdoc:
+    api-docs:
+        path: /v3/api-docs
+    swagger-ui:
+        path: /swagger-ui.html
+
+---
+spring:
+    config:
+        activate:
+            on-profile: docker
+    docker:
+        compose:
+            enabled: false
+    r2dbc:
+        url: r2dbc:postgresql://postgres:5432/tenpo_db
+        username: tenpo
+        password: tenpo_pass
+    datasource:
+        url: jdbc:postgresql://postgres:5432/tenpo_db
+        username: tenpo
+        password: tenpo_pass
+    flyway:
+        url: jdbc:postgresql://postgres:5432/tenpo_db
+        user: tenpo
+        password: tenpo_pass
+    data:
+        redis:
+            host: redis
+            port: 6379
