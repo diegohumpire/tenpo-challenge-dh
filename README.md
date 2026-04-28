@@ -33,25 +33,41 @@ REST API reactiva construida con **Spring Boot 4 / WebFlux** para el challenge t
 
 ## Formas de ejecutar la aplicación
 
-### 1. `./mvnw spring-boot:run` — Desarrollo local (recomendado)
+### Opción 1 — `./mvnw spring-boot:run` (perfil base)
 
-Activa automáticamente el perfil `docker`, que levanta **PostgreSQL + Redis** vía Docker Compose
-usando `spring-boot-docker-compose`. No se necesita ningún paso adicional.
+Igual a ejecutar el JAR directamente. Conecta a PostgreSQL y Redis en `localhost` usando los
+fallbacks de `application.yaml`. Requiere que los servicios ya estén corriendo.
 
 ```bash
+# Levantar infraestructura manualmente
+docker compose up -d
+
+# Ejecutar la aplicación (perfil base, sin docker-compose automático)
 ./mvnw spring-boot:run
 ```
 
-Spring Boot inicia los servicios del `docker-compose.yml`, ejecuta las migraciones Flyway
-y levanta la API en **http://localhost:8080**.
+---
+
+### Opción 2 — `./mvnw spring-boot:run -Dspring-boot.run.profiles=docker` (recomendado)
+
+Activa el perfil `docker`, que usa **spring-boot-docker-compose** para levantar PostgreSQL + Redis
+automáticamente antes de iniciar la app. No se necesita ningún paso previo.
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=docker
+```
+
+Spring Boot levanta los servicios del `docker-compose.yml`, ejecuta las migraciones Flyway
+y expone la API en **http://localhost:8080**.
 
 Para detener: `Ctrl+C` (baja los contenedores automáticamente).
 
 ---
 
-### 2. `docker compose -f docker-compose.full.yml up` — Stack completo en Docker
+### Opción 3 — `docker compose -f docker-compose.full.yml up --build` (stack completo)
 
-Construye la imagen de la API y levanta todo (API + PostgreSQL + Redis) como contenedores.
+Construye la imagen de la API y levanta todo (API + PostgreSQL + Redis) como contenedores Docker.
+No requiere Java ni Maven instalados.
 
 ```bash
 # Construir imagen y levantar el stack completo
@@ -71,32 +87,13 @@ La API quedará disponible en **http://localhost:8080**.
 
 ---
 
-### 3. Infraestructura manual + app local
-
-Si ya tenés PostgreSQL y Redis corriendo (o querés iniciarlos por separado):
-
-```bash
-# Opción A: levantar solo la infraestructura con Docker
-docker compose up -d
-
-# Opción B: servicios locales ya corriendo en localhost:5432 y localhost:6379
-# (no requiere Docker)
-
-# Ejecutar la app sin activar docker-compose automático
-./mvnw spring-boot:run -Dspring-boot.run.profiles=
-```
-
-> Las variables de entorno siguen siendo aplicables en cualquier caso (ver sección abajo).
-
----
-
-### 4. JAR standalone
+### Opción 4 — JAR standalone
 
 ```bash
 # Construir el JAR
 ./mvnw clean package -DskipTests
 
-# Ejecutar (conecta a localhost por defecto)
+# Ejecutar (perfil base, conecta a localhost por defecto)
 java -jar target/dhapi-1.0.0.jar
 
 # Con perfil docker (auto-inicia docker-compose)
