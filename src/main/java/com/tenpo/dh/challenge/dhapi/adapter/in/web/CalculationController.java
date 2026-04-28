@@ -18,26 +18,25 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/calculations")
+@RequestMapping(value = "/calculations", version = "1")
 @RequiredArgsConstructor
 @Tag(name = "Calculations", description = "Endpoint for performing calculations with dynamic percentage")
 public class CalculationController {
 
-    private final CalculationUseCase calculationUseCase;
+        private final CalculationUseCase calculationUseCase;
 
-    @Operation(summary = "Perform a calculation with dynamic percentage",
-               description = "Sums num1 and num2, then applies a percentage obtained from an external service")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Calculation successful"),
-            @ApiResponse(responseCode = "400", description = "Invalid input parameters"),
-            @ApiResponse(responseCode = "429", description = "Rate limit exceeded"),
-            @ApiResponse(responseCode = "503", description = "External percentage service unavailable")
-    })
-    @PostMapping
-    public Mono<ResponseEntity<CalculationResponse>> calculate(
-            @Valid @RequestBody CalculationRequest request) {
-        return calculationUseCase.calculate(request.num1(), request.num2())
-                .map(CalculationResponse::from)
-                .map(resp -> ResponseEntity.status(HttpStatus.CREATED).body(resp));
-    }
+        @Operation(summary = "Perform a calculation with dynamic percentage", description = "Sums num1 and num2, then applies a percentage obtained from an external service")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "201", description = "Calculation successful"),
+                        @ApiResponse(responseCode = "400", description = "Invalid input parameters"),
+                        @ApiResponse(responseCode = "429", description = "Rate limit exceeded"),
+                        @ApiResponse(responseCode = "503", description = "External percentage service unavailable")
+        })
+        @PostMapping
+        public Mono<ResponseEntity<CalculationResponse>> calculate(
+                        @Valid @RequestBody CalculationRequest request) {
+                return calculationUseCase.calculate(request.num1(), request.num2())
+                                .map(CalculationResponse::from)
+                                .map(resp -> ResponseEntity.status(HttpStatus.CREATED).body(resp));
+        }
 }

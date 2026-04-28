@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/audit-logs")
+@RequestMapping(value = "/audit-logs", version = "1")
 @RequiredArgsConstructor
 @Tag(name = "Audit Logs", description = "Endpoint for querying the API call history")
 public class AuditLogController {

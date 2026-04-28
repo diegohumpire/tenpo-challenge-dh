@@ -2,13 +2,8 @@ package com.tenpo.dh.challenge.dhapi.config;
 
 import com.tenpo.dh.challenge.dhapi.annotation.NonVersionApi;
 
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Contact;
-import io.swagger.v3.oas.models.info.Info;
 import jakarta.annotation.Nullable;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 import org.springframework.web.accept.ApiVersionParser;
@@ -18,7 +13,6 @@ import org.springframework.web.reactive.accept.ApiVersionResolver;
 import org.springframework.web.reactive.config.ApiVersionConfigurer;
 import org.springframework.web.reactive.config.PathMatchConfigurer;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ServerWebExchange;
 
 @Configuration
@@ -49,25 +43,6 @@ public class WebFluxConfig implements WebFluxConfigurer {
                         .and(HandlerTypePredicate.forBasePackage("org.springdoc").negate())
                         .and(HandlerTypePredicate.forAnnotation(NonVersionApi.class).negate()) // Exclude exceptional
         );
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public WebClient.Builder webClientBuilder() {
-        return WebClient.builder();
-    }
-
-    @Bean
-    public OpenAPI openAPI() {
-        return new OpenAPI()
-                .info(new Info()
-                        .title("Tenpo Challenge API")
-                        .version("1.0.0")
-                        .description(
-                                "REST API with dynamic percentage calculation, Redis cache, rate limiting, and audit logging")
-                        .contact(new Contact()
-                                .name("Diego Humpire")
-                                .url("https://github.com/diegohumpire")));
     }
 
     /**
