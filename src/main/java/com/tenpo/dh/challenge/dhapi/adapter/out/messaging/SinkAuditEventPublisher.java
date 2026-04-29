@@ -5,7 +5,6 @@ import com.tenpo.dh.challenge.dhapi.domain.port.in.AuditLogUseCase;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.AuditEventPublisher;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -18,11 +17,11 @@ import reactor.core.scheduler.Schedulers;
  * A background subscriber drains the sink and persists each entry on a
  * bounded-elastic thread, so DB latency never blocks the HTTP response.
  *
- * To route events through Kafka instead, implement {@link AuditEventPublisher}
- * with a KafkaTemplate and register it as the primary bean.
+ * To route events through Kafka instead, set {@code audit.publisher=kafka} —
+ * {@link com.tenpo.dh.challenge.dhapi.config.AuditPublisherConfig} will wire
+ * {@link KafkaAuditEventPublisher} instead.
  */
 @Slf4j
-@Component
 public class SinkAuditEventPublisher implements AuditEventPublisher {
 
     // ? DH: Revisar si esto funciona bien con múltiples instancias de la aplicación
