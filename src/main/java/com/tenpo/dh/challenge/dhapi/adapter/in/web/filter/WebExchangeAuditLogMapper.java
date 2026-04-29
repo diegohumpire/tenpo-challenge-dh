@@ -5,12 +5,14 @@ import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.util.Optional;
+
 /**
- * MapStruct mapper that converts a {@link WebExchangeAuditContext} into an
+ * MapStruct mapper que convierte un {@link WebExchangeAuditContext} en un
  * {@link AuditLog} domain object.
  *
- * <p>Business rules for {@code action} and {@code actionType} are encapsulated
- * here, keeping {@link AuditLogFilter} focused solely on data extraction.
+ * <p>Las reglas de negocio para {@code action} y {@code actionType} están encapsuladas
+ * aquí, manteniendo {@link AuditLogFilter} enfocado solo en la extracción de datos.
  */
 @Mapper(componentModel = "spring")
 public interface WebExchangeAuditLogMapper {
@@ -25,15 +27,16 @@ public interface WebExchangeAuditLogMapper {
     AuditLog toAuditLog(WebExchangeAuditContext context);
 
     default String resolveAction(WebExchangeAuditContext context) {
-        String path = context.path();
-        String method = context.method();
+        String path = Optional.ofNullable(context.path()).orElse("");
+        String method = Optional.ofNullable(context.method()).orElse("UNKNOWN");
         if (path.contains("/calculations")) return "CREATE_CALCULATION";
         if (path.contains("/audit-logs")) return "GET_AUDIT_LOGS";
         return method + "_" + path.replaceAll("[^a-zA-Z0-9]", "_").toUpperCase();
     }
 
     default AuditActionType resolveActionType(String path) {
-        if (path.contains("/calculations")) return AuditActionType.CALCULATION;
+        String safePath = Optional.ofNullable(path).orElse("");
+        if (safePath.contains("/calculations")) return AuditActionType.CALCULATION;
         return AuditActionType.HTTP_REQUEST;
     }
 }

@@ -32,7 +32,7 @@ percentage:
     # Values: memory | postman-mock | external (default)
     provider: ${PERCENTAGE_PROVIDER:memory}
     # Timeout in seconds for external HTTP calls (HttpPercentageClient, PostmanMockPercentageClient).
-    timeout-seconds: ${PERCENTAGE_TIMEOUT_SECONDS:10}
+    timeout-seconds: ${PERCENTAGE_TIMEOUT_SECONDS:5}
     cache:
         ttl: ${PERCENTAGE_CACHE_TTL:1800}
     in-memory:

@@ -9,6 +9,7 @@ import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * In-memory implementation of {@link PercentageProvider}.
@@ -29,7 +30,7 @@ public class InMemoryPercentageProvider implements PercentageProvider {
 
     private final PercentageProperties properties;
     private final Environment environment;
-    private volatile boolean simulatingFailure = false;
+    private final AtomicBoolean simulatingFailure = new AtomicBoolean(false);
 
     public InMemoryPercentageProvider(PercentageProperties properties, Environment environment) {
         this.properties = properties;
@@ -46,12 +47,12 @@ public class InMemoryPercentageProvider implements PercentageProvider {
      *
      * @throws UnsupportedOperationException if the {@code test} profile is not active
      */
-    public void setSimulatingFailure(boolean simulatingFailure) {
+    public void setSimulatingFailure(boolean value) {
         if (!isTestProfileActive()) {
             throw new UnsupportedOperationException(
                     "setSimulatingFailure is only allowed when the 'test' Spring profile is active");
         }
-        this.simulatingFailure = simulatingFailure;
+        this.simulatingFailure.set(value);
     }
 
     private boolean isTestProfileActive() {
@@ -60,7 +61,7 @@ public class InMemoryPercentageProvider implements PercentageProvider {
 
     @Override
     public Mono<BigDecimal> getPercentage() {
-        if (simulatingFailure) {
+        if (simulatingFailure.get()) {
             return Mono.error(new RuntimeException("Simulated external service failure"));
         }
         return Mono.deferContextual(ctx -> {

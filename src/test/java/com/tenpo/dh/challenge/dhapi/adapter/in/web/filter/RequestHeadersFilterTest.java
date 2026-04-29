@@ -26,7 +26,7 @@ class RequestHeadersFilterTest {
 
     @BeforeEach
     void setUp() {
-        filter = new RequestHeadersFilter();
+        filter = new RequestHeadersFilter(new FilterResponseWriter());
         lenient().when(chain.filter(any())).thenReturn(Mono.empty());
     }
 

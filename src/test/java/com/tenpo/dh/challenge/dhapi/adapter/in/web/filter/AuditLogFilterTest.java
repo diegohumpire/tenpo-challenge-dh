@@ -41,7 +41,7 @@ class AuditLogFilterTest {
 
     @BeforeEach
     void setUp() {
-        filter = new AuditLogFilter(auditEventPublisher, auditLogMapper);
+        filter = new AuditLogFilter(auditEventPublisher, auditLogMapper, new BodyCompactor());
         when(chain.filter(any())).thenReturn(Mono.empty());
         lenient().when(auditLogMapper.toAuditLog(any())).thenReturn(AuditLog.builder().build());
     }

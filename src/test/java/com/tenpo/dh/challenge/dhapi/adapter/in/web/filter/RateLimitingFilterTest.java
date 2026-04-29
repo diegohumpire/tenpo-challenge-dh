@@ -41,7 +41,7 @@ class RateLimitingFilterTest {
         RateLimitProperties props = new RateLimitProperties();
         props.setMaxRequests(3);
         props.setWindowSeconds(60L);
-        filter = new RateLimitingFilter(redisTemplate, props);
+        filter = new RateLimitingFilter(redisTemplate, props, new FilterResponseWriter());
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
         when(chain.filter(any())).thenReturn(Mono.empty());
     }

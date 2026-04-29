@@ -1,21 +1,14 @@
 package com.tenpo.dh.challenge.dhapi.adapter.out.http;
 
 import com.tenpo.dh.challenge.dhapi.config.PercentageProperties;
-import com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
-
-import java.math.BigDecimal;
-import java.time.Duration;
 
 /**
- * {@link PercentageProvider} backed by a Postman mock server.
+ * {@link com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider} backed by a Postman mock server.
  * <p>
  * Headers forwarded from the incoming request to the Postman call:
  * <ul>
@@ -23,29 +16,19 @@ import java.time.Duration;
  *   <li>{@code x-mock-percentage}    — forwarded so Postman can reflect it in the response.</li>
  * </ul>
  */
-@Slf4j
-public class PostmanMockPercentageClient implements PercentageProvider {
-
-    private final WebClient webClient;
-    private final String path;
-    private final CircuitBreaker circuitBreaker;
-    private final PercentageProperties.Retry retryConfig;
-    private final Duration timeout;
+public class PostmanMockPercentageClient extends AbstractHttpPercentageClient {
 
     public PostmanMockPercentageClient(WebClient.Builder builder,
-                                       PercentageProperties properties,
-                                       CircuitBreaker circuitBreaker) {
-        this.webClient = builder
-                .baseUrl(properties.getPostmanMock().getBaseUrl())
-                .build();
-        this.path = properties.getPostmanMock().getPath();
-        this.circuitBreaker = circuitBreaker;
-        this.retryConfig = properties.getRetry();
-        this.timeout = Duration.ofSeconds(properties.getTimeoutSeconds());
+                                        PercentageProperties properties,
+                                        CircuitBreaker circuitBreaker) {
+        super(builder.baseUrl(properties.getPostmanMock().getBaseUrl()).build(),
+                properties.getPostmanMock().getPath(),
+                circuitBreaker,
+                properties);
     }
 
     @Override
-    public Mono<BigDecimal> getPercentage() {
+    protected Mono<WebClient.RequestHeadersSpec<?>> buildRequest() {
         return Mono.deferContextual(ctx -> {
             WebClient.RequestHeadersSpec<?> request = webClient.get().uri(path);
 
@@ -64,17 +47,13 @@ public class PostmanMockPercentageClient implements PercentageProvider {
                 }
             }
 
-            return request.retrieve()
-                    .bodyToMono(PercentageResponse.class)
-                    .map(PercentageResponse::percentage)
-                    .timeout(timeout)
-                    .retryWhen(Retry.backoff(retryConfig.getMaxAttempts(), Duration.ofSeconds(retryConfig.getInitialBackoffSeconds()))
-                            .maxBackoff(Duration.ofSeconds(retryConfig.getMaxBackoffSeconds()))
-                            .doBeforeRetry(signal -> log.warn(
-                                    "Retrying Postman mock call, attempt {}", signal.totalRetries() + 1)))
-                    .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
-                    .doOnError(e -> log.error("Postman mock service failed: {}", e.getMessage()));
+            return Mono.just(request);
         });
+    }
+
+    @Override
+    protected String getServiceName() {
+        return "PostmanMockPercentageService";
     }
 }
 

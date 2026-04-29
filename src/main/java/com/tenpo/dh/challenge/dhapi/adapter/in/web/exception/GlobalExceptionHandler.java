@@ -19,59 +19,51 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final URI ERROR_TYPE_URI = URI.create("about:blank");
+
     @ExceptionHandler(WebExchangeBindException.class)
     public ResponseEntity<ProblemDetail> handleValidation(WebExchangeBindException ex) {
         String detail = ex.getBindingResult().getFieldErrors().stream()
                 .map(e -> e.getField() + ": " + e.getDefaultMessage())
                 .collect(Collectors.joining(", "));
-
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
-        problem.setTitle("Validation Error");
-        problem.setType(URI.create("about:blank"));
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Validation Error", detail);
     }
 
     @ExceptionHandler(ServerWebInputException.class)
     public ResponseEntity<ProblemDetail> handleServerWebInput(ServerWebInputException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Bad Request",
                 "Malformed request body: " + ex.getReason());
-        problem.setTitle("Bad Request");
-        problem.setType(URI.create("about:blank"));
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
     }
 
     @ExceptionHandler(PercentageNotAvailableException.class)
     public ResponseEntity<ProblemDetail> handlePercentageNotAvailable(PercentageNotAvailableException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
-        problem.setTitle("Service Unavailable");
-        problem.setType(URI.create("about:blank"));
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(problem);
+        return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", ex.getMessage());
     }
 
     @ExceptionHandler(RateLimitExceededException.class)
     public ResponseEntity<ProblemDetail> handleRateLimit(RateLimitExceededException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
-        problem.setTitle("Too Many Requests");
-        problem.setType(URI.create("about:blank"));
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(problem);
+        return buildErrorResponse(HttpStatus.TOO_MANY_REQUESTS, "Too Many Requests", ex.getMessage());
     }
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ProblemDetail> handleResponseStatus(ResponseStatusException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.valueOf(ex.getStatusCode().value()), ex.getReason() != null ? ex.getReason() : ex.getMessage());
-        problem.setTitle("HTTP Error");
-        problem.setType(URI.create("about:blank"));
-        return ResponseEntity.status(ex.getStatusCode()).body(problem);
+        return buildErrorResponse(
+                HttpStatus.valueOf(ex.getStatusCode().value()),
+                "HTTP Error",
+                ex.getReason() != null ? ex.getReason() : ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGeneral(Exception ex) {
         log.error("Unexpected error", ex);
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error",
                 "An unexpected error occurred. Please try again later.");
-        problem.setTitle("Internal Server Error");
-        problem.setType(URI.create("about:blank"));
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problem);
+    }
+
+    private ResponseEntity<ProblemDetail> buildErrorResponse(HttpStatus status, String title, String detail) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+        problem.setTitle(title);
+        problem.setType(ERROR_TYPE_URI);
+        return ResponseEntity.status(status).body(problem);
     }
 }
