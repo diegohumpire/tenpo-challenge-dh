@@ -2,6 +2,8 @@ package com.tenpo.dh.challenge.dhapi.adapter.out.http;
 
 import com.tenpo.dh.challenge.dhapi.config.PercentageProperties;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -20,10 +22,16 @@ public class HttpPercentageClient implements PercentageProvider {
 
     private final WebClient webClient;
     private final String path;
+    private final CircuitBreaker circuitBreaker;
+    private final PercentageProperties.Retry retryConfig;
 
-    public HttpPercentageClient(WebClient.Builder builder, PercentageProperties properties) {
+    public HttpPercentageClient(WebClient.Builder builder,
+                                PercentageProperties properties,
+                                CircuitBreaker circuitBreaker) {
         this.webClient = builder.baseUrl(properties.getExternal().getBaseUrl()).build();
         this.path = properties.getExternal().getPath();
+        this.circuitBreaker = circuitBreaker;
+        this.retryConfig = properties.getRetry();
     }
 
     @Override
@@ -33,10 +41,12 @@ public class HttpPercentageClient implements PercentageProvider {
                 .retrieve()
                 .bodyToMono(PercentageResponse.class)
                 .map(PercentageResponse::percentage)
-                .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
-                        .maxBackoff(Duration.ofSeconds(5))
+                .retryWhen(Retry.backoff(retryConfig.getMaxAttempts(), Duration.ofSeconds(retryConfig.getInitialBackoffSeconds()))
+                        .maxBackoff(Duration.ofSeconds(retryConfig.getMaxBackoffSeconds()))
                         .doBeforeRetry(signal -> log.warn("Retrying external percentage call, attempt {}",
                                 signal.totalRetries() + 1)))
-                .doOnError(e -> log.error("External percentage service failed after retries: {}", e.getMessage()));
+                .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
+                .doOnError(e -> log.error("External percentage service failed: {}", e.getMessage()));
     }
 }
+

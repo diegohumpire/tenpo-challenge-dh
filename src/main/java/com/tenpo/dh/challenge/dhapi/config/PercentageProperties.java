@@ -14,6 +14,8 @@ public class PercentageProperties {
     private InMemory inMemory = new InMemory();
     private PostmanMock postmanMock = new PostmanMock();
     private External external = new External();
+    private Retry retry = new Retry();
+    private CircuitBreaker circuitBreaker = new CircuitBreaker();
 
     @Data
     public static class Cache {
@@ -37,5 +39,33 @@ public class PercentageProperties {
     public static class External {
         private String baseUrl = "http://localhost:8080";
         private String path = "/percentage";
+    }
+
+    @Data
+    public static class Retry {
+        /** Maximum number of retry attempts after the first failure. */
+        private int maxAttempts = 3;
+        /** Initial backoff duration in seconds. */
+        private long initialBackoffSeconds = 1;
+        /** Maximum backoff duration in seconds. */
+        private long maxBackoffSeconds = 5;
+    }
+
+    @Data
+    public static class CircuitBreaker {
+        /** Failure rate threshold (%) to transition to OPEN. */
+        private float failureRateThreshold = 50;
+        /** Slow call rate threshold (%) to transition to OPEN. */
+        private float slowCallRateThreshold = 100;
+        /** Duration in seconds above which a call is considered slow. */
+        private long slowCallDurationSeconds = 3;
+        /** Number of calls in the sliding window used to evaluate the circuit. */
+        private int slidingWindowSize = 10;
+        /** Minimum number of calls before the circuit breaker can evaluate failure rate. */
+        private int minimumNumberOfCalls = 5;
+        /** Time in seconds the circuit stays OPEN before transitioning to HALF_OPEN. */
+        private long waitDurationInOpenStateSeconds = 30;
+        /** Number of calls allowed through in HALF_OPEN state. */
+        private int permittedCallsInHalfOpenState = 3;
     }
 }

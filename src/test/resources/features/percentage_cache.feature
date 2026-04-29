@@ -26,3 +26,10 @@ Feature: Caché del porcentaje con Redis
     When se resuelve el porcentaje
     Then se realizan exactamente 3 reintentos al servicio externo
     And se usa el valor en caché como fallback
+
+  Scenario: El circuit breaker protege el fallback cuando el servicio externo falla repetidamente
+    Given hay un valor de porcentaje 10.0 en caché
+    And el servicio externo falla en todos los intentos
+    When se resuelve el porcentaje
+    Then se retorna el valor cacheado 10.0
+    And no se lanza ninguna excepción

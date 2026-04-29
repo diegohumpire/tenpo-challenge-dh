@@ -41,6 +41,18 @@ percentage:
     external:
         base-url: ${PERCENTAGE_EXTERNAL_BASE_URL:http://localhost:8080}
         path: ${PERCENTAGE_EXTERNAL_PATH:/percentage}
+    retry:
+        max-attempts: ${PERCENTAGE_RETRY_MAX_ATTEMPTS:3}
+        initial-backoff-seconds: ${PERCENTAGE_RETRY_INITIAL_BACKOFF_SECONDS:1}
+        max-backoff-seconds: ${PERCENTAGE_RETRY_MAX_BACKOFF_SECONDS:5}
+    circuit-breaker:
+        failure-rate-threshold: ${PERCENTAGE_CB_FAILURE_RATE_THRESHOLD:50}
+        slow-call-rate-threshold: ${PERCENTAGE_CB_SLOW_CALL_RATE_THRESHOLD:100}
+        slow-call-duration-seconds: ${PERCENTAGE_CB_SLOW_CALL_DURATION_SECONDS:3}
+        sliding-window-size: ${PERCENTAGE_CB_SLIDING_WINDOW_SIZE:10}
+        minimum-number-of-calls: ${PERCENTAGE_CB_MINIMUM_NUMBER_OF_CALLS:5}
+        wait-duration-in-open-state-seconds: ${PERCENTAGE_CB_WAIT_DURATION_OPEN_SECONDS:30}
+        permitted-calls-in-half-open-state: ${PERCENTAGE_CB_PERMITTED_CALLS_HALF_OPEN:3}
 
 rate-limit:
     max-requests: ${RATE_LIMIT_MAX_REQUESTS:3}

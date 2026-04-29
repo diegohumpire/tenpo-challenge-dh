@@ -3,6 +3,7 @@ package com.tenpo.dh.challenge.dhapi.config;
 import com.tenpo.dh.challenge.dhapi.adapter.out.http.HttpPercentageClient;
 import com.tenpo.dh.challenge.dhapi.adapter.out.http.InMemoryPercentageProvider;
 import com.tenpo.dh.challenge.dhapi.adapter.out.http.PostmanMockPercentageClient;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import org.springframework.beans.factory.BeanRegistrar;
 import org.springframework.beans.factory.BeanRegistry;
 import org.springframework.core.env.Environment;
@@ -39,7 +40,8 @@ class PercentageProviderRegistrar implements BeanRegistrar {
                     spec -> spec.supplier(ctx ->
                             new PostmanMockPercentageClient(
                                     ctx.bean(WebClient.Builder.class),
-                                    ctx.bean(PercentageProperties.class))));
+                                    ctx.bean(PercentageProperties.class),
+                                    ctx.bean(CircuitBreaker.class))));
 
             default -> registry.registerBean(
                     "percentageProvider",
@@ -47,7 +49,8 @@ class PercentageProviderRegistrar implements BeanRegistrar {
                     spec -> spec.supplier(ctx ->
                             new HttpPercentageClient(
                                     ctx.bean(WebClient.Builder.class),
-                                    ctx.bean(PercentageProperties.class))));
+                                    ctx.bean(PercentageProperties.class),
+                                    ctx.bean(CircuitBreaker.class))));
         }
     }
 }

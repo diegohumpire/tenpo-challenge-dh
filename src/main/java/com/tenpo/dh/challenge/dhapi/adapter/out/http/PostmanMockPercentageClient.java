@@ -2,6 +2,8 @@ package com.tenpo.dh.challenge.dhapi.adapter.out.http;
 
 import com.tenpo.dh.challenge.dhapi.config.PercentageProperties;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -26,12 +28,18 @@ public class PostmanMockPercentageClient implements PercentageProvider {
 
     private final WebClient webClient;
     private final String path;
+    private final CircuitBreaker circuitBreaker;
+    private final PercentageProperties.Retry retryConfig;
 
-    public PostmanMockPercentageClient(WebClient.Builder builder, PercentageProperties properties) {
+    public PostmanMockPercentageClient(WebClient.Builder builder,
+                                       PercentageProperties properties,
+                                       CircuitBreaker circuitBreaker) {
         this.webClient = builder
                 .baseUrl(properties.getPostmanMock().getBaseUrl())
                 .build();
         this.path = properties.getPostmanMock().getPath();
+        this.circuitBreaker = circuitBreaker;
+        this.retryConfig = properties.getRetry();
     }
 
     @Override
@@ -57,11 +65,13 @@ public class PostmanMockPercentageClient implements PercentageProvider {
             return request.retrieve()
                     .bodyToMono(PercentageResponse.class)
                     .map(PercentageResponse::percentage)
-                    .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
-                            .maxBackoff(Duration.ofSeconds(5))
+                    .retryWhen(Retry.backoff(retryConfig.getMaxAttempts(), Duration.ofSeconds(retryConfig.getInitialBackoffSeconds()))
+                            .maxBackoff(Duration.ofSeconds(retryConfig.getMaxBackoffSeconds()))
                             .doBeforeRetry(signal -> log.warn(
                                     "Retrying Postman mock call, attempt {}", signal.totalRetries() + 1)))
-                    .doOnError(e -> log.error("Postman mock service failed after retries: {}", e.getMessage()));
+                    .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
+                    .doOnError(e -> log.error("Postman mock service failed: {}", e.getMessage()));
         });
     }
 }
+

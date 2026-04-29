@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Import;
  * {@link com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider} implementation.
  */
 @Configuration
-@Import(PercentageProviderRegistrar.class)
+@Import({PercentageProviderRegistrar.class, ResilienceConfig.class})
 @EnableConfigurationProperties(PercentageProperties.class)
 public class PercentageProviderConfig {
 }
