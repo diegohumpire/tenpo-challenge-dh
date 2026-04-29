@@ -16,7 +16,7 @@ public abstract class AbstractKafkaIntegrationTest extends AbstractIntegrationTe
     @Container
     @SuppressWarnings("resource")
     protected static final KafkaContainer kafka =
-            new KafkaContainer("apache/kafka-native:4.0.0");
+            new KafkaContainer("apache/kafka-native:3.8.0");
 
     @DynamicPropertySource
     static void overrideKafkaProperties(DynamicPropertyRegistry registry) {

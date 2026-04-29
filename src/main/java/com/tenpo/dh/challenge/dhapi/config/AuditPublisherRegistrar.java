@@ -4,12 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tenpo.dh.challenge.dhapi.adapter.out.messaging.KafkaAuditEventPublisher;
 import com.tenpo.dh.challenge.dhapi.adapter.out.messaging.SinkAuditEventPublisher;
 import com.tenpo.dh.challenge.dhapi.domain.port.in.AuditLogUseCase;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.BeanRegistrar;
 import org.springframework.beans.factory.BeanRegistry;
 import org.springframework.core.env.Environment;
+import reactor.kafka.sender.KafkaSender;
+import reactor.kafka.sender.SenderOptions;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +31,7 @@ class AuditPublisherRegistrar implements BeanRegistrar {
     @Override
     public void register(BeanRegistry registry, Environment env) {
         String mode = env.getProperty("audit.publisher", "memory");
+
         if ("kafka".equals(mode)) {
             registerKafkaPublisher(registry, env);
         } else {
@@ -47,14 +49,12 @@ class AuditPublisherRegistrar implements BeanRegistrar {
                 spec -> spec.supplier(ctx -> {
                     Map<String, Object> producerProps = new HashMap<>();
                     producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-                    producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-                    producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+                    producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+                    producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
                     producerProps.put(ProducerConfig.ACKS_CONFIG, "1");
 
-                    return new KafkaAuditEventPublisher(
-                            () -> new KafkaProducer<>(producerProps),
-                            ctx.bean(ObjectMapper.class),
-                            topic);
+                    KafkaSender<String, String> sender = KafkaSender.create(SenderOptions.create(producerProps));
+                    return new KafkaAuditEventPublisher(sender, ctx.bean(ObjectMapper.class), topic);
                 }));
     }
 
