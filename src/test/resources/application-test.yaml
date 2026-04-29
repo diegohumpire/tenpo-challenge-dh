@@ -23,3 +23,6 @@ percentage:
     provider: memory
     in-memory:
         value: 10.0
+
+audit:
+    publisher: memory

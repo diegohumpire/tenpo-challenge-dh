@@ -161,6 +161,17 @@
 			<optional>true</optional>
 		</dependency>
 
+		<!-- ===== MESSAGING — KAFKA ===== -->
+		<dependency>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.projectreactor.kafka</groupId>
+			<artifactId>reactor-kafka</artifactId>
+			<version>1.3.25</version>
+		</dependency>
+
 		<!-- ===== TEST ===== -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -185,6 +196,12 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>r2dbc</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>kafka</artifactId>
 			<scope>test</scope>
 		</dependency>
 
@@ -219,7 +236,9 @@
 				<configuration>
 					<excludes>
 						<exclude>**/CucumberRunnerTest.java</exclude>
+						<exclude>**/KafkaCucumberRunnerTest.java</exclude>
 						<exclude>**/DhapiApplicationTests.java</exclude>
+						<exclude>**/KafkaAuditPublisherIntegrationTest.java</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
