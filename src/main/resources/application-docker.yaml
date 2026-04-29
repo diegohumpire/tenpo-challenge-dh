@@ -6,14 +6,3 @@ spring:
         compose:
             enabled: true
             lifecycle-management: start-and-stop
-
-percentage:
-    provider: ${PERCENTAGE_PROVIDER:postman-mock}
-    cache:
-        ttl: ${PERCENTAGE_CACHE_TTL:60}
-
-
-audit:
-    publisher: ${AUDIT_PUBLISHER:kafka}
-    kafka:
-        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}

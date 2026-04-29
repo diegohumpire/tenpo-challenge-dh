@@ -64,15 +64,6 @@ rate-limit:
     max-requests: ${RATE_LIMIT_MAX_REQUESTS:3}
     window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:60}
 
-audit:
-    # Selects the AuditEventPublisher implementation.
-    # Values: memory | kafka (default: memory)
-    publisher: ${AUDIT_PUBLISHER:memory}
-    kafka:
-        topic: ${AUDIT_KAFKA_TOPIC:audit-events}
-        bootstrap-servers: ${AUDIT_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-        consumer-group: ${AUDIT_KAFKA_CONSUMER_GROUP:dhapi-audit}
-
 springdoc:
     api-docs:
         path: /v3/api-docs

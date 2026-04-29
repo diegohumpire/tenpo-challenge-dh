@@ -161,12 +161,6 @@
 			<optional>true</optional>
 		</dependency>
 
-		<!-- ===== MESSAGING — KAFKA ===== -->
-		<dependency>
-			<groupId>org.springframework.kafka</groupId>
-			<artifactId>spring-kafka</artifactId>
-		</dependency>
-
 		<!-- ===== TEST ===== -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -191,12 +185,6 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>r2dbc</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.testcontainers</groupId>
-			<artifactId>kafka</artifactId>
 			<scope>test</scope>
 		</dependency>
 
@@ -231,9 +219,7 @@
 				<configuration>
 					<excludes>
 						<exclude>**/CucumberRunnerTest.java</exclude>
-						<exclude>**/KafkaCucumberRunnerTest.java</exclude>
 						<exclude>**/DhapiApplicationTests.java</exclude>
-						<exclude>**/KafkaAuditPublisherIntegrationTest.java</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
@@ -251,13 +237,10 @@
 						<exclude>com/tenpo/dh/challenge/dhapi/annotation/**</exclude>
 						<!-- Spring Boot entry point -->
 						<exclude>com/tenpo/dh/challenge/dhapi/DhapiApplication*</exclude>
-						<!-- Spring Data repository interface — implementation is
-						framework-generated -->
-						<exclude>
-							com/tenpo/dh/challenge/dhapi/adapter/out/persistence/AuditLogR2dbcDao*</exclude>
+						<!-- Spring Data repository interface — implementation is framework-generated -->
+						<exclude>com/tenpo/dh/challenge/dhapi/adapter/out/persistence/AuditLogR2dbcDao*</exclude>
 						<!-- MapStruct mapper implementation — generated at compile time -->
-						<exclude>
-							com/tenpo/dh/challenge/dhapi/adapter/in/web/mapper/AuditLogResponseMapperImpl*</exclude>
+						<exclude>com/tenpo/dh/challenge/dhapi/adapter/in/web/mapper/AuditLogResponseMapperImpl*</exclude>
 					</excludes>
 				</configuration>
 				<executions>
