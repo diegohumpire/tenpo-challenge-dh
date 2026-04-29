@@ -1,8 +1,5 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web.filter;
 
-import com.tenpo.dh.challenge.dhapi.domain.model.AuditActionType;
-import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
-import com.tenpo.dh.challenge.dhapi.domain.model.CallDirection;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.AuditEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +18,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -36,6 +32,7 @@ public class AuditLogFilter implements WebFilter {
             "/actuator", "/swagger-ui", "/v3/api-docs", "/mock", "/webjars", "/mock/percentage");
 
     private final AuditEventPublisher auditEventPublisher;
+    private final WebExchangeAuditLogMapper auditLogMapper;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
@@ -46,13 +43,12 @@ public class AuditLogFilter implements WebFilter {
         }
 
         long startTime = System.currentTimeMillis();
-        // TODO: Agregrar un filtro de validacion de cabeceras obligatorias (e.g.
+        // TODO: Agregar un filtro de validación de cabeceras obligatorias (e.g.
         // Transactional-Id) para asegurar su presencia y correcta propagación a través
         // de logs y trazas distribuidas. Mientras tanto
-        String transactionalId = UUID.randomUUID().toString(); // TODO: Debe de ser inyectado mediante una cabecera... o
+        String transactionalId = UUID.randomUUID().toString(); // TODO: Debe de ser inyectado mediante una cabecera o
                                                                // generado por un componente específico para ese fin
-                                                               // (e.g. TransactionalIdGenerator) para asegurar su
-                                                               // propagación a través de logs y trazas distribuidas.
+                                                               // (e.g. TransactionalIdGenerator).
 
         // Eagerly read and buffer the entire request body once.
         // This prevents multiple subscriptions to the underlying (potentially unicast)
@@ -87,27 +83,20 @@ public class AuditLogFilter implements WebFilter {
                     return chain.filter(mutatedExchange)
                             .doFinally(signal -> {
                                 try {
-                                    long durationMs = System.currentTimeMillis() - startTime;
                                     ServerHttpRequest req = exchange.getRequest();
                                     ServerHttpResponse resp = mutatedExchange.getResponse();
 
-                                    AuditLog auditLog = AuditLog.builder()
-                                            .createdAt(OffsetDateTime.now())
-                                            .action(resolveAction(req))
-                                            .actionType(resolveActionType(path))
-                                            .callDirection(CallDirection.IN)
-                                            .transactionalId(transactionalId)
-                                            .method(req.getMethod().name())
-                                            .endpoint(path)
-                                            .params(formatQueryParams(req))
-                                            .requestHeaders(headersToString(req.getHeaders()))
-                                            .requestBody(requestBody)
-                                            .statusCode(
-                                                    resp.getStatusCode() != null ? resp.getStatusCode().value() : null)
-                                            .durationMs(durationMs)
-                                            .build();
+                                    WebExchangeAuditContext context = new WebExchangeAuditContext(
+                                            transactionalId,
+                                            path,
+                                            req.getMethod().name(),
+                                            formatQueryParams(req),
+                                            headersToString(req.getHeaders()),
+                                            requestBody,
+                                            resp.getStatusCode() != null ? resp.getStatusCode().value() : null,
+                                            System.currentTimeMillis() - startTime);
 
-                                    auditEventPublisher.publish(auditLog);
+                                    auditEventPublisher.publish(auditLogMapper.toAuditLog(context));
                                 } catch (Exception e) {
                                     log.error("Error building audit log entry: {}", e.getMessage());
                                 }
@@ -117,22 +106,6 @@ public class AuditLogFilter implements WebFilter {
 
     private boolean isExcluded(String path) {
         return EXCLUDED_PREFIXES.stream().anyMatch(path::startsWith);
-    }
-
-    private String resolveAction(ServerHttpRequest req) {
-        String path = req.getPath().value();
-        String method = req.getMethod().name();
-        if (path.contains("/calculations"))
-            return "CREATE_CALCULATION";
-        if (path.contains("/audit-logs"))
-            return "GET_AUDIT_LOGS";
-        return method + "_" + path.replaceAll("[^a-zA-Z0-9]", "_").toUpperCase();
-    }
-
-    private AuditActionType resolveActionType(String path) {
-        if (path.contains("/calculations"))
-            return AuditActionType.CALCULATION;
-        return AuditActionType.HTTP_REQUEST;
     }
 
     private String formatQueryParams(ServerHttpRequest req) {

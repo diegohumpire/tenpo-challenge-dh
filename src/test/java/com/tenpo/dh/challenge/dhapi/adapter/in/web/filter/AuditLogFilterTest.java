@@ -1,6 +1,5 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web.filter;
 
-import com.tenpo.dh.challenge.dhapi.domain.model.AuditActionType;
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.AuditEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,46 +26,50 @@ class AuditLogFilterTest {
     private AuditEventPublisher auditEventPublisher;
 
     @Mock
+    private WebExchangeAuditLogMapper auditLogMapper;
+
+    @Mock
     private WebFilterChain chain;
 
     private AuditLogFilter filter;
 
     @BeforeEach
     void setUp() {
-        filter = new AuditLogFilter(auditEventPublisher);
+        filter = new AuditLogFilter(auditEventPublisher, auditLogMapper);
         when(chain.filter(any())).thenReturn(Mono.empty());
+        lenient().when(auditLogMapper.toAuditLog(any())).thenReturn(AuditLog.builder().build());
     }
 
     @Test
-    void filter_calculationsPath_publishesAuditLogWithCalculationActionType() {
+    void filter_calculationsPath_buildsContextWithCorrectPathAndPublishes() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.post("/api/v1/calculations").build());
 
         StepVerifier.create(filter.filter(exchange, chain))
                 .verifyComplete();
 
-        ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
-        verify(auditEventPublisher).publish(captor.capture());
-        AuditLog published = captor.getValue();
+        ArgumentCaptor<WebExchangeAuditContext> contextCaptor = ArgumentCaptor.forClass(WebExchangeAuditContext.class);
+        verify(auditLogMapper).toAuditLog(contextCaptor.capture());
+        verify(auditEventPublisher).publish(any());
 
-        assertThat(published.getActionType()).isEqualTo(AuditActionType.CALCULATION);
-        assertThat(published.getAction()).isEqualTo("CREATE_CALCULATION");
+        WebExchangeAuditContext capturedContext = contextCaptor.getValue();
+        assertThat(capturedContext.path()).isEqualTo("/api/v1/calculations");
+        assertThat(capturedContext.method()).isEqualTo("POST");
     }
 
     @Test
-    void filter_auditLogsPath_publishesAuditLogWithHttpRequestActionType() {
+    void filter_auditLogsPath_buildsContextWithCorrectPathAndPublishes() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/v1/audit-logs").build());
 
         StepVerifier.create(filter.filter(exchange, chain))
                 .verifyComplete();
 
-        ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
-        verify(auditEventPublisher).publish(captor.capture());
-        AuditLog published = captor.getValue();
+        ArgumentCaptor<WebExchangeAuditContext> contextCaptor = ArgumentCaptor.forClass(WebExchangeAuditContext.class);
+        verify(auditLogMapper).toAuditLog(contextCaptor.capture());
+        verify(auditEventPublisher).publish(any());
 
-        assertThat(published.getActionType()).isEqualTo(AuditActionType.HTTP_REQUEST);
-        assertThat(published.getAction()).isEqualTo("GET_AUDIT_LOGS");
+        assertThat(contextCaptor.getValue().path()).isEqualTo("/api/v1/audit-logs");
     }
 
     @Test
@@ -78,6 +81,7 @@ class AuditLogFilterTest {
                 .verifyComplete();
 
         verifyNoInteractions(auditEventPublisher);
+        verifyNoInteractions(auditLogMapper);
     }
 
     @Test
@@ -89,10 +93,11 @@ class AuditLogFilterTest {
                 .verifyComplete();
 
         verifyNoInteractions(auditEventPublisher);
+        verifyNoInteractions(auditLogMapper);
     }
 
     @Test
-    void filter_withRequestBody_capturesBodyInAuditLog() {
+    void filter_withRequestBody_capturesBodyInContext() {
         String jsonBody = "{\"num1\":5.0,\"num2\":5.0}";
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.post("/api/v1/calculations")
@@ -102,9 +107,9 @@ class AuditLogFilterTest {
         StepVerifier.create(filter.filter(exchange, chain))
                 .verifyComplete();
 
-        ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
-        verify(auditEventPublisher).publish(captor.capture());
-        assertThat(captor.getValue().getRequestBody()).isEqualTo(jsonBody);
+        ArgumentCaptor<WebExchangeAuditContext> contextCaptor = ArgumentCaptor.forClass(WebExchangeAuditContext.class);
+        verify(auditLogMapper).toAuditLog(contextCaptor.capture());
+        assertThat(contextCaptor.getValue().requestBody()).isEqualTo(jsonBody);
     }
 
     @Test
@@ -118,3 +123,4 @@ class AuditLogFilterTest {
                 .verifyComplete();
     }
 }
+

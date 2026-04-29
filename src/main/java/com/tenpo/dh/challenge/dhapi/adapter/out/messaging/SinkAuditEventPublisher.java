@@ -25,6 +25,14 @@ import reactor.core.scheduler.Schedulers;
 @Component
 public class SinkAuditEventPublisher implements AuditEventPublisher {
 
+    // ? DH: Revisar si esto funciona bien con múltiples instancias de la aplicación
+    // ? (e.g. en Kubernetes) o si se pierden eventos al escalar horizontalmente,
+    // ? etc.
+    // ? En ese caso, Kafka sería la opción más robusta para asegurar la entrega de
+    // ? eventos de auditoría incluso en escenarios de alta concurrencia y
+    // ? escalabilidad horizontal. Sin embargo, para un entorno controlado o de
+    // ? desarrollo, esta implementación basada en Sinks puede ser suficiente y más
+    // ? simple de configurar.
     private final Sinks.Many<AuditLog> sink;
     private final Disposable subscription;
 

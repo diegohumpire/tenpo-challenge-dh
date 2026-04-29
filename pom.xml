@@ -32,6 +32,7 @@
 		<springdoc-openapi.version>3.0.3</springdoc-openapi.version>
 		<cucumber.version>7.22.0</cucumber.version>
 		<testcontainers.version>1.21.0</testcontainers.version>
+		<mapstruct.version>1.6.3</mapstruct.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -150,6 +151,11 @@
 			<optional>true</optional>
 		</dependency>
 		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>${mapstruct.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-configuration-processor</artifactId>
 			<optional>true</optional>
@@ -246,6 +252,11 @@
 									<artifactId>lombok</artifactId>
 								</path>
 								<path>
+									<groupId>org.mapstruct</groupId>
+									<artifactId>mapstruct-processor</artifactId>
+									<version>${mapstruct.version}</version>
+								</path>
+								<path>
 									<groupId>org.springframework.boot</groupId>
 									<artifactId>spring-boot-configuration-processor</artifactId>
 								</path>
@@ -263,6 +274,11 @@
 								<path>
 									<groupId>org.projectlombok</groupId>
 									<artifactId>lombok</artifactId>
+								</path>
+								<path>
+									<groupId>org.mapstruct</groupId>
+									<artifactId>mapstruct-processor</artifactId>
+									<version>${mapstruct.version}</version>
 								</path>
 								<path>
 									<groupId>org.springframework.boot</groupId>

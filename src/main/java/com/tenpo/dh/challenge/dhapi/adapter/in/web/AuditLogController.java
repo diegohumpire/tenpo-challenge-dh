@@ -1,6 +1,7 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web;
 
 import com.tenpo.dh.challenge.dhapi.adapter.in.web.dto.AuditLogResponse;
+import com.tenpo.dh.challenge.dhapi.adapter.in.web.dto.AuditLogResponseMapper;
 import com.tenpo.dh.challenge.dhapi.adapter.in.web.dto.PageResponse;
 import com.tenpo.dh.challenge.dhapi.domain.port.in.AuditLogUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,6 +25,7 @@ import reactor.core.publisher.Mono;
 public class AuditLogController {
 
     private final AuditLogUseCase auditLogUseCase;
+    private final AuditLogResponseMapper auditLogResponseMapper;
 
     @Operation(summary = "Get paginated audit log history", description = "Returns a paginated list of all API calls recorded in the system")
     @ApiResponse(responseCode = "200", description = "Audit logs retrieved successfully")
@@ -38,7 +40,7 @@ public class AuditLogController {
         PageRequest pageable = PageRequest.of(page, cappedSize, sortObj);
 
         return auditLogUseCase.findAll(pageable)
-                .map(p -> p.map(AuditLogResponse::from))
+                .map(p -> p.map(auditLogResponseMapper::toResponse))
                 .map(PageResponse::from)
                 .map(ResponseEntity::ok);
     }
