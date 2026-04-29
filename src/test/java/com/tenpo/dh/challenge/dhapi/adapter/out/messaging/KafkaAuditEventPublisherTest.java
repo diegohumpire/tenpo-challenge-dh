@@ -33,11 +33,11 @@ class KafkaAuditEventPublisherTest {
 
     @BeforeEach
     void setUp() {
-        publisher = new KafkaAuditEventPublisher(() -> kafkaProducer, new ObjectMapper().findAndRegisterModules(), TOPIC);
+        publisher = new KafkaAuditEventPublisher(() -> kafkaProducer, new ObjectMapper().findAndRegisterModules(),
+                TOPIC);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void publish_validAuditLog_sendsJsonToKafkaTopic() throws InterruptedException {
         doAnswer(invocation -> {
             Callback callback = invocation.getArgument(1);
@@ -67,9 +67,10 @@ class KafkaAuditEventPublisherTest {
     void publish_serializationFails_doesNotCallKafka() throws Exception {
         ObjectMapper brokenMapper = mock(ObjectMapper.class);
         when(brokenMapper.writeValueAsString(any()))
-                .thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("forced") {});
-        KafkaAuditEventPublisher brokenPublisher =
-                new KafkaAuditEventPublisher(() -> kafkaProducer, brokenMapper, TOPIC);
+                .thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("forced") {
+                });
+        KafkaAuditEventPublisher brokenPublisher = new KafkaAuditEventPublisher(() -> kafkaProducer, brokenMapper,
+                TOPIC);
 
         assertThatNoException().isThrownBy(() -> brokenPublisher.publish(buildAuditLog()));
         verifyNoInteractions(kafkaProducer);
@@ -80,7 +81,10 @@ class KafkaAuditEventPublisherTest {
         AtomicInteger factoryCalls = new AtomicInteger(0);
 
         new KafkaAuditEventPublisher(
-                () -> { factoryCalls.incrementAndGet(); return kafkaProducer; },
+                () -> {
+                    factoryCalls.incrementAndGet();
+                    return kafkaProducer;
+                },
                 new ObjectMapper().findAndRegisterModules(),
                 TOPIC);
 
@@ -88,11 +92,13 @@ class KafkaAuditEventPublisherTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void publish_firstPublish_callsFactoryExactlyOnce() throws InterruptedException {
         AtomicInteger factoryCalls = new AtomicInteger(0);
         KafkaAuditEventPublisher lazyPublisher = new KafkaAuditEventPublisher(
-                () -> { factoryCalls.incrementAndGet(); return kafkaProducer; },
+                () -> {
+                    factoryCalls.incrementAndGet();
+                    return kafkaProducer;
+                },
                 new ObjectMapper().findAndRegisterModules(),
                 TOPIC);
 
@@ -111,7 +117,9 @@ class KafkaAuditEventPublisherTest {
     @Test
     void publish_producerFactoryThrows_errorIsSwallowed() {
         KafkaAuditEventPublisher failPublisher = new KafkaAuditEventPublisher(
-                () -> { throw new RuntimeException("Broker unavailable"); },
+                () -> {
+                    throw new RuntimeException("Broker unavailable");
+                },
                 new ObjectMapper().findAndRegisterModules(),
                 TOPIC);
 

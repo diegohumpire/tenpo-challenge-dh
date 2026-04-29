@@ -42,7 +42,8 @@ class KafkaAuditLogConsumerTest {
 
     @BeforeEach
     void setUp() {
-        consumer = new KafkaAuditLogConsumer(() -> kafkaConsumer, auditLogUseCase, new ObjectMapper().findAndRegisterModules());
+        consumer = new KafkaAuditLogConsumer(() -> kafkaConsumer, auditLogUseCase,
+                new ObjectMapper().findAndRegisterModules());
     }
 
     @AfterEach
@@ -50,6 +51,7 @@ class KafkaAuditLogConsumerTest {
         consumer.stopConsuming();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     void startConsuming_validMessage_persistsAuditLog() throws InterruptedException {
         AuditLog auditLog = buildAuditLog();
@@ -64,6 +66,7 @@ class KafkaAuditLogConsumerTest {
         verify(auditLogUseCase, times(1)).save(any());
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     void startConsuming_persistenceFails_doesNotCrashConsumer() throws InterruptedException {
         AuditLog auditLog = buildAuditLog();
@@ -78,9 +81,11 @@ class KafkaAuditLogConsumerTest {
         verify(auditLogUseCase, times(2)).save(any());
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     void startConsuming_malformedJson_skipsMessageWithoutCrashing() throws InterruptedException {
-        when(kafkaConsumer.poll(any(Duration.class))).thenReturn(buildConsumerRecords("not-valid-json"), emptyRecords());
+        when(kafkaConsumer.poll(any(Duration.class))).thenReturn(buildConsumerRecords("not-valid-json"),
+                emptyRecords());
 
         consumer.startConsuming();
 
@@ -110,10 +115,11 @@ class KafkaAuditLogConsumerTest {
                 .thenReturn(emptyRecords());
         when(auditLogUseCase.save(any())).thenReturn(Mono.just(auditLog));
 
-        int[] callCount = {0};
+        int[] callCount = { 0 };
         KafkaAuditLogConsumer retryConsumer = new KafkaAuditLogConsumer(
                 () -> {
-                    if (callCount[0]++ == 0) throw new RuntimeException("broker not ready");
+                    if (callCount[0]++ == 0)
+                        throw new RuntimeException("broker not ready");
                     return kafkaConsumer;
                 },
                 auditLogUseCase,

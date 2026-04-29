@@ -1,7 +1,6 @@
 package com.tenpo.dh.challenge.dhapi.application.service;
 
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
-import com.tenpo.dh.challenge.dhapi.domain.model.AuditLogFilter;
 import com.tenpo.dh.challenge.dhapi.domain.model.PaginationRequest;
 import com.tenpo.dh.challenge.dhapi.domain.model.PaginationResult;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.AuditLogRepository;
