@@ -1,6 +1,6 @@
 package com.tenpo.dh.challenge.dhapi.config;
 
-import com.tenpo.dh.challenge.dhapi.annotation.NonVersionApi;
+import com.tenpo.dh.challenge.dhapi.adapter.in.web.annotation.NonVersionApi;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.annotation.RestController;

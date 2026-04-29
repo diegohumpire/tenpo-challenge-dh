@@ -1,4 +1,4 @@
-package com.tenpo.dh.challenge.dhapi.annotation;
+package com.tenpo.dh.challenge.dhapi.adapter.in.web.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -8,6 +8,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface NonVersionApi {
-    // Controllers with this annotation are excluded from the /api/{version} prefix
-    // rule.
+    // Controllers with this annotation are excluded from the /api/{version} prefix rule.
 }

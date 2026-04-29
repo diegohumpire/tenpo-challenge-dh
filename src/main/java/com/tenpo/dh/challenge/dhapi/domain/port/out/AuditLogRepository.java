@@ -1,11 +1,11 @@
 package com.tenpo.dh.challenge.dhapi.domain.port.out;
 
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.tenpo.dh.challenge.dhapi.domain.model.PaginationRequest;
+import com.tenpo.dh.challenge.dhapi.domain.model.PaginationResult;
 import reactor.core.publisher.Mono;
 
 public interface AuditLogRepository {
     Mono<AuditLog> save(AuditLog auditLog);
-    Mono<Page<AuditLog>> findAll(Pageable pageable);
+    Mono<PaginationResult<AuditLog>> findAll(PaginationRequest request);
 }

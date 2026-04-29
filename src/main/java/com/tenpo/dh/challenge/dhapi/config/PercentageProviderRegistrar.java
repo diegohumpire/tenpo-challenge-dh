@@ -1,7 +1,7 @@
 package com.tenpo.dh.challenge.dhapi.config;
 
 import com.tenpo.dh.challenge.dhapi.adapter.out.http.HttpPercentageClient;
-import com.tenpo.dh.challenge.dhapi.adapter.out.http.InMemoryPercentageProvider;
+import com.tenpo.dh.challenge.dhapi.adapter.out.stub.InMemoryPercentageProvider;
 import com.tenpo.dh.challenge.dhapi.adapter.out.http.PostmanMockPercentageClient;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import org.springframework.beans.factory.BeanRegistrar;

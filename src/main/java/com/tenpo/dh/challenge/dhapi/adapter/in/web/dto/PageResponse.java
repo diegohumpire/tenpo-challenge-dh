@@ -1,6 +1,6 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web.dto;
 
-import org.springframework.data.domain.Page;
+import com.tenpo.dh.challenge.dhapi.domain.model.PaginationResult;
 
 import java.util.List;
 
@@ -11,13 +11,13 @@ public record PageResponse<T>(
         long totalElements,
         int totalPages
 ) {
-    public static <T> PageResponse<T> from(Page<T> pageData) {
+    public static <T> PageResponse<T> from(PaginationResult<T> result) {
         return new PageResponse<>(
-                pageData.getContent(),
-                pageData.getNumber(),
-                pageData.getSize(),
-                pageData.getTotalElements(),
-                pageData.getTotalPages()
+                result.content(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
         );
     }
 }

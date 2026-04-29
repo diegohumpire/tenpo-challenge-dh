@@ -6,7 +6,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class FilterExclusionConfigTest {
+class FilterExcludedPathsTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
@@ -21,7 +21,7 @@ class FilterExclusionConfigTest {
             "/webjars/some-lib"
     })
     void isExcluded_returnsTrueForExcludedPrefixes(String path) {
-        assertThat(FilterExclusionConfig.isExcluded(path)).isTrue();
+        assertThat(FilterExcludedPaths.isExcluded(path)).isTrue();
     }
 
     @ParameterizedTest
@@ -33,12 +33,13 @@ class FilterExclusionConfigTest {
             "/calculations"
     })
     void isExcluded_returnsFalseForNonExcludedPaths(String path) {
-        assertThat(FilterExclusionConfig.isExcluded(path)).isFalse();
+        assertThat(FilterExcludedPaths.isExcluded(path)).isFalse();
     }
 
     @Test
     void excludedPrefixes_listContainsExpectedValues() {
-        assertThat(FilterExclusionConfig.EXCLUDED_PREFIXES)
+        assertThat(FilterExcludedPaths.EXCLUDED_PREFIXES)
                 .contains("/actuator", "/swagger-ui", "/v3/api-docs", "/mock", "/webjars");
     }
 }
+

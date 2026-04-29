@@ -1,5 +1,6 @@
-package com.tenpo.dh.challenge.dhapi.adapter.in.web.dto;
+package com.tenpo.dh.challenge.dhapi.adapter.in.web.mapper;
 
+import com.tenpo.dh.challenge.dhapi.adapter.in.web.dto.AuditLogResponse;
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
 import org.mapstruct.Mapper;
 

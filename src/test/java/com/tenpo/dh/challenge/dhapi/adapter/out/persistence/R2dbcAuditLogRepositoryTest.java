@@ -1,12 +1,15 @@
 package com.tenpo.dh.challenge.dhapi.adapter.out.persistence;
 
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
+import com.tenpo.dh.challenge.dhapi.domain.model.PaginationRequest;
+import com.tenpo.dh.challenge.dhapi.domain.model.PaginationResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -14,6 +17,7 @@ import reactor.test.StepVerifier;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -22,34 +26,44 @@ class R2dbcAuditLogRepositoryTest {
     @Mock
     private AuditLogR2dbcDao dao;
 
+    @Mock
+    private AuditLogEntityMapper entityMapper;
+
     @InjectMocks
     private R2dbcAuditLogRepository repository;
 
     @Test
-    void save_delegatesToDao() {
-        AuditLog log = AuditLog.builder().id(1L).action("TEST").build();
-        when(dao.save(log)).thenReturn(Mono.just(log));
+    void save_delegatesToDaoAndMapsResult() {
+        AuditLog domain = AuditLog.builder().id(1L).action("TEST").build();
+        AuditLogEntity entity = AuditLogEntity.builder().id(1L).action("TEST").build();
 
-        StepVerifier.create(repository.save(log))
-                .expectNext(log)
+        when(entityMapper.toEntity(domain)).thenReturn(entity);
+        when(dao.save(entity)).thenReturn(Mono.just(entity));
+        when(entityMapper.toDomain(entity)).thenReturn(domain);
+
+        StepVerifier.create(repository.save(domain))
+                .expectNext(domain)
                 .verifyComplete();
     }
 
     @Test
     void findAll_returnsPaginatedResultsWithCorrectMetadata() {
-        AuditLog log = AuditLog.builder().id(1L).action("TEST").build();
-        PageRequest pageable = PageRequest.of(0, 10);
+        AuditLog domain = AuditLog.builder().id(1L).action("TEST").build();
+        AuditLogEntity entity = AuditLogEntity.builder().id(1L).action("TEST").build();
+        PaginationRequest request = new PaginationRequest(0, 10, "createdAt", PaginationRequest.SortDirection.DESC);
+        PageRequest expectedPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        // total must be >= offset + pageSize to prevent PageImpl from correcting it
-        // (Spring Data uses offset+content.size() when offset+pageSize > total)
         when(dao.count()).thenReturn(Mono.just(100L));
-        when(dao.findAllBy(pageable)).thenReturn(Flux.fromIterable(List.of(log)));
+        when(dao.findAllBy(expectedPageable)).thenReturn(Flux.fromIterable(List.of(entity)));
+        when(entityMapper.toDomain(any(AuditLogEntity.class))).thenReturn(domain);
 
-        StepVerifier.create(repository.findAll(pageable))
-                .assertNext(page -> {
-                    assertThat(page.getTotalElements()).isEqualTo(100L);
-                    assertThat(page.getContent()).containsExactly(log);
-                    assertThat(page.getSize()).isEqualTo(10);
+        StepVerifier.create(repository.findAll(request))
+                .assertNext(result -> {
+                    assertThat(result.totalElements()).isEqualTo(100L);
+                    assertThat(result.content()).containsExactly(domain);
+                    assertThat(result.size()).isEqualTo(10);
+                    assertThat(result.page()).isEqualTo(0);
+                    assertThat(result.totalPages()).isEqualTo(10);
                 })
                 .verifyComplete();
     }

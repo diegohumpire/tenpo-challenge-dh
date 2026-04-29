@@ -1,4 +1,4 @@
-package com.tenpo.dh.challenge.dhapi.adapter.out.http;
+package com.tenpo.dh.challenge.dhapi.adapter.out.stub;
 
 import com.tenpo.dh.challenge.dhapi.config.PercentageProperties;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider;
@@ -99,3 +99,4 @@ public class InMemoryPercentageProvider implements PercentageProvider {
         });
     }
 }
+

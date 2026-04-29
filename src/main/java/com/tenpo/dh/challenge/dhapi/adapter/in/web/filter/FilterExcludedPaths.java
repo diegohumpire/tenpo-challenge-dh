@@ -9,12 +9,12 @@ import java.util.List;
  * En producción, solo el path {@code /actuator} es accesible externamente;
  * los demás son solo para desarrollo y documentación.
  */
-public final class FilterExclusionConfig {
+public final class FilterExcludedPaths {
 
     public static final List<String> EXCLUDED_PREFIXES = List.of(
             "/actuator", "/swagger-ui", "/v3/api-docs", "/mock", "/webjars", "/mock/percentage");
 
-    private FilterExclusionConfig() {}
+    private FilterExcludedPaths() {}
 
     /**
      * Retorna {@code true} si el path dado empieza con alguno de los prefijos excluidos.

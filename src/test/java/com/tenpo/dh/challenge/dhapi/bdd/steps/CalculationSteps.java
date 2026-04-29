@@ -1,7 +1,7 @@
 package com.tenpo.dh.challenge.dhapi.bdd.steps;
 
 import com.tenpo.dh.challenge.dhapi.adapter.in.web.filter.RequestHeadersFilter;
-import com.tenpo.dh.challenge.dhapi.adapter.out.http.InMemoryPercentageProvider;
+import com.tenpo.dh.challenge.dhapi.adapter.out.stub.InMemoryPercentageProvider;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;

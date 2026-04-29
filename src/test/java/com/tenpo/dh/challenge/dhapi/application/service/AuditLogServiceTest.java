@@ -1,15 +1,14 @@
 package com.tenpo.dh.challenge.dhapi.application.service;
 
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
+import com.tenpo.dh.challenge.dhapi.domain.model.PaginationRequest;
+import com.tenpo.dh.challenge.dhapi.domain.model.PaginationResult;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.AuditLogRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -67,14 +66,14 @@ class AuditLogServiceTest {
 
     @Test
     void findAll_delegatesToRepository() {
-        Page<AuditLog> page = new PageImpl<>(List.of());
-        PageRequest pageable = PageRequest.of(0, 20);
-        when(auditLogRepository.findAll(pageable)).thenReturn(Mono.just(page));
+        PaginationRequest request = new PaginationRequest(0, 20, "createdAt", PaginationRequest.SortDirection.DESC);
+        PaginationResult<AuditLog> result = new PaginationResult<>(List.of(), 0, 20, 0L, 0);
+        when(auditLogRepository.findAll(request)).thenReturn(Mono.just(result));
 
-        StepVerifier.create(auditLogService.findAll(pageable))
-                .expectNext(page)
+        StepVerifier.create(auditLogService.findAll(request))
+                .expectNext(result)
                 .verifyComplete();
 
-        verify(auditLogRepository).findAll(pageable);
+        verify(auditLogRepository).findAll(request);
     }
 }

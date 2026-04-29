@@ -10,6 +10,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers(disabledWithoutDocker = true)
 public abstract class AbstractIntegrationTest {
 
+    @SuppressWarnings("resource")
     @Container
     protected static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
             .withDatabaseName("tenpo_db")
@@ -26,8 +27,8 @@ public abstract class AbstractIntegrationTest {
         if (!postgres.isRunning() || !redis.isRunning()) {
             return; // Docker not available — application-test.yaml defaults will be used
         }
-        registry.add("spring.r2dbc.url", () ->
-                "r2dbc:postgresql://" + postgres.getHost() + ":" + postgres.getMappedPort(5432) + "/tenpo_db");
+        registry.add("spring.r2dbc.url",
+                () -> "r2dbc:postgresql://" + postgres.getHost() + ":" + postgres.getMappedPort(5432) + "/tenpo_db");
         registry.add("spring.r2dbc.username", postgres::getUsername);
         registry.add("spring.r2dbc.password", postgres::getPassword);
         registry.add("spring.datasource.url", postgres::getJdbcUrl);

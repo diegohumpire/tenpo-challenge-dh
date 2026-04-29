@@ -1,6 +1,6 @@
 package com.tenpo.dh.challenge.dhapi.bdd.steps;
 
-import com.tenpo.dh.challenge.dhapi.adapter.out.http.InMemoryPercentageProvider;
+import com.tenpo.dh.challenge.dhapi.adapter.out.stub.InMemoryPercentageProvider;
 import com.tenpo.dh.challenge.dhapi.application.service.PercentageService;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageCacheStore;
 import io.cucumber.java.Before;

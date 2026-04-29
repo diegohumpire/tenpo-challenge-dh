@@ -1,4 +1,4 @@
-package com.tenpo.dh.challenge.dhapi.adapter.out.http;
+package com.tenpo.dh.challenge.dhapi.adapter.out.stub;
 
 import com.tenpo.dh.challenge.dhapi.config.PercentageProperties;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,3 +76,4 @@ class InMemoryPercentageProviderTest {
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 }
+

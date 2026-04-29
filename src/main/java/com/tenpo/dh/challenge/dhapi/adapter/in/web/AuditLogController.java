@@ -1,8 +1,9 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web;
 
 import com.tenpo.dh.challenge.dhapi.adapter.in.web.dto.AuditLogResponse;
-import com.tenpo.dh.challenge.dhapi.adapter.in.web.dto.AuditLogResponseMapper;
 import com.tenpo.dh.challenge.dhapi.adapter.in.web.dto.PageResponse;
+import com.tenpo.dh.challenge.dhapi.adapter.in.web.mapper.AuditLogResponseMapper;
+import com.tenpo.dh.challenge.dhapi.domain.model.PaginationRequest;
 import com.tenpo.dh.challenge.dhapi.domain.port.in.AuditLogUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,8 +11,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,26 +40,25 @@ public class AuditLogController {
             @Parameter(description = "Sort field and direction") @RequestParam(defaultValue = "createdAt,desc") String sort) {
 
         int cappedSize = Math.min(size, MAX_PAGE_SIZE);
-        Sort sortObj = buildSort(sort);
-        PageRequest pageable = PageRequest.of(page, cappedSize, sortObj);
+        PaginationRequest request = buildPaginationRequest(page, cappedSize, sort);
 
-        return auditLogUseCase.findAll(pageable)
+        return auditLogUseCase.findAll(request)
                 .map(p -> p.map(auditLogResponseMapper::toResponse))
                 .map(PageResponse::from)
                 .map(ResponseEntity::ok);
     }
 
-    private Sort buildSort(String sort) {
+    private PaginationRequest buildPaginationRequest(int page, int size, String sort) {
         try {
             String[] parts = sort.split(",");
             String field = parts[0].trim();
-            Sort.Direction direction = parts.length > 1 && parts[1].trim().equalsIgnoreCase("asc")
-                    ? Sort.Direction.ASC
-                    : Sort.Direction.DESC;
-            return Sort.by(direction, field);
+            PaginationRequest.SortDirection direction = parts.length > 1 && parts[1].trim().equalsIgnoreCase("asc")
+                    ? PaginationRequest.SortDirection.ASC
+                    : PaginationRequest.SortDirection.DESC;
+            return new PaginationRequest(page, size, field, direction);
         } catch (Exception e) {
             log.warn("Invalid sort parameter '{}', using default createdAt,desc", sort);
-            return Sort.by(Sort.Direction.DESC, "createdAt");
+            return new PaginationRequest(page, size, "createdAt", PaginationRequest.SortDirection.DESC);
         }
     }
 }

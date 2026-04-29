@@ -1,6 +1,7 @@
 package com.tenpo.dh.challenge.dhapi.application.service;
 
 import com.tenpo.dh.challenge.dhapi.domain.exception.PercentageNotAvailableException;
+import com.tenpo.dh.challenge.dhapi.domain.port.in.PercentageResolverUseCase;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageCacheStore;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,7 @@ import java.math.BigDecimal;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PercentageService {
+public class PercentageService implements PercentageResolverUseCase {
 
     private final PercentageProvider percentageProvider;
     private final PercentageCacheStore percentageCacheStore;
@@ -25,6 +26,7 @@ public class PercentageService {
      * 3. On failure → fall back to cached value
      * 4. No cached value → throw PercentageNotAvailableException (→ 503)
      */
+    @Override
     public Mono<BigDecimal> resolvePercentage() {
         return percentageProvider.getPercentage()
                 .flatMap(pct -> percentageCacheStore.put(pct).thenReturn(pct))

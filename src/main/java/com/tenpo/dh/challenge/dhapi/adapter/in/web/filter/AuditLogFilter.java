@@ -31,7 +31,7 @@ public class AuditLogFilter implements WebFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String path = exchange.getRequest().getPath().value();
-        if (FilterExclusionConfig.isExcluded(path)) {
+        if (FilterExcludedPaths.isExcluded(path)) {
             log.debug("Path excluido del audit log: `{}`", path);
             return chain.filter(exchange);
         }

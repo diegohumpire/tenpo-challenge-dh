@@ -1,6 +1,7 @@
 package com.tenpo.dh.challenge.dhapi.application.service;
 
 import com.tenpo.dh.challenge.dhapi.domain.model.Calculation;
+import com.tenpo.dh.challenge.dhapi.domain.port.in.PercentageResolverUseCase;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,14 +19,14 @@ import static org.mockito.Mockito.when;
 class CalculationServiceTest {
 
     @Mock
-    private PercentageService percentageService;
+    private PercentageResolverUseCase percentageResolverUseCase;
 
     @InjectMocks
     private CalculationService calculationService;
 
     @Test
     void calculate_withValidNumbers_returnsCorrectResult() {
-        when(percentageService.resolvePercentage()).thenReturn(Mono.just(BigDecimal.valueOf(10)));
+        when(percentageResolverUseCase.resolvePercentage()).thenReturn(Mono.just(BigDecimal.valueOf(10)));
 
         StepVerifier.create(calculationService.calculate(BigDecimal.valueOf(5), BigDecimal.valueOf(5)))
                 .assertNext(calc -> {
@@ -38,7 +39,7 @@ class CalculationServiceTest {
 
     @Test
     void calculate_withZeroPercentage_returnsSumOnly() {
-        when(percentageService.resolvePercentage()).thenReturn(Mono.just(BigDecimal.ZERO));
+        when(percentageResolverUseCase.resolvePercentage()).thenReturn(Mono.just(BigDecimal.ZERO));
 
         StepVerifier.create(calculationService.calculate(BigDecimal.valueOf(3), BigDecimal.valueOf(7)))
                 .assertNext(calc -> {
@@ -50,7 +51,7 @@ class CalculationServiceTest {
 
     @Test
     void calculate_withNegativeNumbers_computesCorrectly() {
-        when(percentageService.resolvePercentage()).thenReturn(Mono.just(BigDecimal.valueOf(10)));
+        when(percentageResolverUseCase.resolvePercentage()).thenReturn(Mono.just(BigDecimal.valueOf(10)));
 
         StepVerifier.create(calculationService.calculate(BigDecimal.valueOf(-5), BigDecimal.valueOf(15)))
                 .assertNext(calc -> {
@@ -62,7 +63,7 @@ class CalculationServiceTest {
 
     @Test
     void calculate_propagatesErrorFromPercentageService() {
-        when(percentageService.resolvePercentage())
+        when(percentageResolverUseCase.resolvePercentage())
                 .thenReturn(Mono.error(new RuntimeException("Service unavailable")));
 
         StepVerifier.create(calculationService.calculate(BigDecimal.valueOf(5), BigDecimal.valueOf(5)))

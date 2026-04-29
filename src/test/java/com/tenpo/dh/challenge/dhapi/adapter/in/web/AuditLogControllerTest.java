@@ -1,18 +1,16 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web;
 
 import com.tenpo.dh.challenge.dhapi.adapter.in.web.dto.AuditLogResponse;
-import com.tenpo.dh.challenge.dhapi.adapter.in.web.dto.AuditLogResponseMapper;
+import com.tenpo.dh.challenge.dhapi.adapter.in.web.mapper.AuditLogResponseMapper;
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
+import com.tenpo.dh.challenge.dhapi.domain.model.PaginationRequest;
+import com.tenpo.dh.challenge.dhapi.domain.model.PaginationResult;
 import com.tenpo.dh.challenge.dhapi.domain.port.in.AuditLogUseCase;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -40,11 +38,11 @@ class AuditLogControllerTest {
     @Test
     void getAuditLogs_returnsPagedResponseWithMappedEntries() {
         AuditLog log = AuditLog.builder().id(1L).action("TEST").build();
-        Page<AuditLog> page = new PageImpl<>(List.of(log), PageRequest.of(0, 20), 1);
+        PaginationResult<AuditLog> result = new PaginationResult<>(List.of(log), 0, 20, 1L, 1);
         AuditLogResponse dto = new AuditLogResponse(1L, null, "TEST", null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null);
 
-        when(auditLogUseCase.findAll(any())).thenReturn(Mono.just(page));
+        when(auditLogUseCase.findAll(any())).thenReturn(Mono.just(result));
         when(auditLogResponseMapper.toResponse(any(AuditLog.class))).thenReturn(dto);
 
         StepVerifier.create(controller.getAuditLogs(0, 20, "createdAt,desc"))
@@ -59,34 +57,34 @@ class AuditLogControllerTest {
 
     @Test
     void getAuditLogs_sizeExceedsMax_capsAtHundred() {
-        Page<AuditLog> page = new PageImpl<>(List.of(), PageRequest.of(0, 100), 0);
-        when(auditLogUseCase.findAll(any())).thenReturn(Mono.just(page));
+        PaginationResult<AuditLog> result = new PaginationResult<>(List.of(), 0, 100, 0L, 0);
+        when(auditLogUseCase.findAll(any())).thenReturn(Mono.just(result));
 
         StepVerifier.create(controller.getAuditLogs(0, 999, "createdAt,desc"))
                 .assertNext(resp -> assertThat(resp.getBody()).isNotNull())
                 .verifyComplete();
 
-        verify(auditLogUseCase).findAll(argThat(p -> p.getPageSize() == 100));
+        verify(auditLogUseCase).findAll(argThat(p -> p.size() == 100));
     }
 
     @Test
     void getAuditLogs_withAscSortParam_appliesAscDirection() {
-        Page<AuditLog> page = new PageImpl<>(List.of());
-        when(auditLogUseCase.findAll(any())).thenReturn(Mono.just(page));
+        PaginationResult<AuditLog> result = new PaginationResult<>(List.of(), 0, 20, 0L, 0);
+        when(auditLogUseCase.findAll(any())).thenReturn(Mono.just(result));
 
         StepVerifier.create(controller.getAuditLogs(0, 20, "action,asc"))
                 .assertNext(resp -> assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK))
                 .verifyComplete();
 
         verify(auditLogUseCase).findAll(argThat(p ->
-                p.getSort().getOrderFor("action") != null &&
-                p.getSort().getOrderFor("action").getDirection() == Sort.Direction.ASC));
+                p.sortField().equals("action") &&
+                p.sortDirection() == PaginationRequest.SortDirection.ASC));
     }
 
     @Test
     void getAuditLogs_withNullSortParam_fallsBackToDefaultCreatedAtDesc() {
-        Page<AuditLog> page = new PageImpl<>(List.of());
-        when(auditLogUseCase.findAll(any())).thenReturn(Mono.just(page));
+        PaginationResult<AuditLog> result = new PaginationResult<>(List.of(), 0, 20, 0L, 0);
+        when(auditLogUseCase.findAll(any())).thenReturn(Mono.just(result));
 
         // null causes NPE in sort.split(",") which is caught and defaults to createdAt,desc
         StepVerifier.create(controller.getAuditLogs(0, 20, null))
@@ -94,7 +92,7 @@ class AuditLogControllerTest {
                 .verifyComplete();
 
         verify(auditLogUseCase).findAll(argThat(p ->
-                p.getSort().getOrderFor("createdAt") != null &&
-                p.getSort().getOrderFor("createdAt").getDirection() == Sort.Direction.DESC));
+                p.sortField().equals("createdAt") &&
+                p.sortDirection() == PaginationRequest.SortDirection.DESC));
     }
 }
