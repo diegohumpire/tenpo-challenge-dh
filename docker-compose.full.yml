@@ -13,7 +13,7 @@ services:
     networks:
       - tenpo-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tenpo -d tenpo_db"]
+      test: [ "CMD-SHELL", "pg_isready -U tenpo -d tenpo_db" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -28,7 +28,7 @@ services:
     networks:
       - tenpo-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -37,7 +37,7 @@ services:
     image: apache/kafka:4.0.0
     container_name: tenpo-kafka
     ports:
-      - "9092:9092"   # EXTERNAL listener — host access via localhost:9092
+      - "9092:9092" # EXTERNAL listener — host access via localhost:9092
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -57,7 +57,12 @@ services:
       - tenpo-network
     mem_limit: 400m
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092
+            --list",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -99,6 +104,10 @@ services:
       AUDIT_PUBLISHER: kafka
       AUDIT_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       AUDIT_KAFKA_TOPIC: audit-events
+      PERCENTAGE_PROVIDER: postman-mock
+      PERCENTAGE_POSTMAN_BASE_URL: https://ec995055-c0c3-4482-aa85-89f5660540f0.mock.pstmn.io
+      PERCENTAGE_POSTMAN_PATH: /mock/percentage
+      PERCENTAGE_CACHE_TTL: 1800
     depends_on:
       postgres:
         condition: service_healthy
