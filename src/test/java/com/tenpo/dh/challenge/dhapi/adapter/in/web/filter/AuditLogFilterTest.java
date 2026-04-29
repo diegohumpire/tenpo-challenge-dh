@@ -1,6 +1,5 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web.filter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.AuditEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,7 +38,7 @@ class AuditLogFilterTest {
 
     @BeforeEach
     void setUp() {
-        filter = new AuditLogFilter(auditEventPublisher, auditLogMapper, new ObjectMapper());
+        filter = new AuditLogFilter(auditEventPublisher, auditLogMapper);
         when(chain.filter(any())).thenReturn(Mono.empty());
         lenient().when(auditLogMapper.toAuditLog(any())).thenReturn(AuditLog.builder().build());
     }

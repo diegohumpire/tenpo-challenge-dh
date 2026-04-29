@@ -31,9 +31,10 @@ public class AuditLogFilter implements WebFilter {
     private static final List<String> EXCLUDED_PREFIXES = List.of(
             "/actuator", "/swagger-ui", "/v3/api-docs", "/mock", "/webjars", "/mock/percentage");
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private final AuditEventPublisher auditEventPublisher;
     private final WebExchangeAuditLogMapper auditLogMapper;
-    private final ObjectMapper objectMapper;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
@@ -119,8 +120,8 @@ public class AuditLogFilter implements WebFilter {
             return body;
         }
         try {
-            Object parsed = objectMapper.readValue(body, Object.class);
-            return objectMapper.writeValueAsString(parsed);
+            Object parsed = OBJECT_MAPPER.readValue(body, Object.class);
+            return OBJECT_MAPPER.writeValueAsString(parsed);
         } catch (Exception e) {
             return body.replaceAll("\\s+", " ").strip();
         }
