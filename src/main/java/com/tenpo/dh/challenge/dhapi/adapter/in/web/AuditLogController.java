@@ -11,7 +11,11 @@ import com.tenpo.dh.challenge.dhapi.domain.model.PaginationRequest;
 import com.tenpo.dh.challenge.dhapi.domain.port.in.AuditLogUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,8 +42,28 @@ public class AuditLogController {
     private final AuditLogResponseMapper auditLogResponseMapper;
 
     @Operation(summary = "Get paginated audit log history",
-            description = "Returns a lightweight paginated list. Supports optional filters on indexed fields.")
-    @ApiResponse(responseCode = "200", description = "Audit logs retrieved successfully")
+            description = "Returns a lightweight paginated list. Supports optional filters on indexed fields.",
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-Transactional-Id", required = true,
+                            description = "Correlation ID for distributed tracing, injected by the API Gateway",
+                            example = "550e8400-e29b-41d4-a716-446655440000", schema = @Schema(type = "string")),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-User-Id", required = true,
+                            description = "Authenticated user identity, injected by the API Gateway",
+                            example = "user-123", schema = @Schema(type = "string"))
+            })
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Audit logs retrieved successfully", headers = {
+                    @Header(name = "X-Transactional-Id", description = "Echoed correlation ID for distributed tracing", schema = @Schema(type = "string")),
+                    @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
+                    @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "2"))
+            }),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded", headers = {
+                    @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
+                    @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "0")),
+                    @Header(name = "X-RateLimit-Reset", description = "Unix timestamp (seconds) when the rate limit window resets", schema = @Schema(type = "integer", example = "1714000060")),
+                    @Header(name = "Retry-After", description = "Seconds to wait before making another request", schema = @Schema(type = "integer", example = "58"))
+            })
+    })
     @GetMapping
     public Mono<ResponseEntity<PageResponse<AuditLogSummaryResponse>>> getAuditLogs(
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
@@ -62,9 +86,33 @@ public class AuditLogController {
     }
 
     @Operation(summary = "Get audit log detail",
-            description = "Returns all fields for a single audit log entry including HTTP headers and bodies.")
-    @ApiResponse(responseCode = "200", description = "Audit log found")
-    @ApiResponse(responseCode = "404", description = "Audit log not found")
+            description = "Returns all fields for a single audit log entry including HTTP headers and bodies.",
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-Transactional-Id", required = true,
+                            description = "Correlation ID for distributed tracing, injected by the API Gateway",
+                            example = "550e8400-e29b-41d4-a716-446655440000", schema = @Schema(type = "string")),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-User-Id", required = true,
+                            description = "Authenticated user identity, injected by the API Gateway",
+                            example = "user-123", schema = @Schema(type = "string"))
+            })
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Audit log found", headers = {
+                    @Header(name = "X-Transactional-Id", description = "Echoed correlation ID for distributed tracing", schema = @Schema(type = "string")),
+                    @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
+                    @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "2"))
+            }),
+            @ApiResponse(responseCode = "404", description = "Audit log not found", headers = {
+                    @Header(name = "X-Transactional-Id", description = "Echoed correlation ID for distributed tracing", schema = @Schema(type = "string")),
+                    @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
+                    @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "2"))
+            }),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded", headers = {
+                    @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
+                    @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "0")),
+                    @Header(name = "X-RateLimit-Reset", description = "Unix timestamp (seconds) when the rate limit window resets", schema = @Schema(type = "integer", example = "1714000060")),
+                    @Header(name = "Retry-After", description = "Seconds to wait before making another request", schema = @Schema(type = "integer", example = "58"))
+            })
+    })
     @GetMapping("/{id}")
     public Mono<ResponseEntity<AuditLogDetailResponse>> getAuditLogById(@PathVariable Long id) {
         return auditLogUseCase.findById(id)
@@ -74,8 +122,28 @@ public class AuditLogController {
     }
 
     @Operation(summary = "Get audit logs by transactional ID",
-            description = "Returns all fields for a given transactional ID, excluding GET_AUDIT_LOGS entries.")
-    @ApiResponse(responseCode = "200", description = "Audit logs retrieved successfully")
+            description = "Returns all fields for a given transactional ID, excluding GET_AUDIT_LOGS entries.",
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-Transactional-Id", required = true,
+                            description = "Correlation ID for distributed tracing, injected by the API Gateway",
+                            example = "550e8400-e29b-41d4-a716-446655440000", schema = @Schema(type = "string")),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-User-Id", required = true,
+                            description = "Authenticated user identity, injected by the API Gateway",
+                            example = "user-123", schema = @Schema(type = "string"))
+            })
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Audit logs retrieved successfully", headers = {
+                    @Header(name = "X-Transactional-Id", description = "Echoed correlation ID for distributed tracing", schema = @Schema(type = "string")),
+                    @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
+                    @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "2"))
+            }),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded", headers = {
+                    @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
+                    @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "0")),
+                    @Header(name = "X-RateLimit-Reset", description = "Unix timestamp (seconds) when the rate limit window resets", schema = @Schema(type = "integer", example = "1714000060")),
+                    @Header(name = "Retry-After", description = "Seconds to wait before making another request", schema = @Schema(type = "integer", example = "58"))
+            })
+    })
     @GetMapping("/transactions/{transactionalId}")
     public Mono<ResponseEntity<PageResponse<AuditLogDetailResponse>>> getByTransactionalId(
             @PathVariable String transactionalId,
@@ -93,8 +161,28 @@ public class AuditLogController {
     }
 
     @Operation(summary = "Get audit logs by user ID",
-            description = "Returns all fields for a given user ID, excluding GET_AUDIT_LOGS entries.")
-    @ApiResponse(responseCode = "200", description = "Audit logs retrieved successfully")
+            description = "Returns all fields for a given user ID, excluding GET_AUDIT_LOGS entries.",
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-Transactional-Id", required = true,
+                            description = "Correlation ID for distributed tracing, injected by the API Gateway",
+                            example = "550e8400-e29b-41d4-a716-446655440000", schema = @Schema(type = "string")),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-User-Id", required = true,
+                            description = "Authenticated user identity, injected by the API Gateway",
+                            example = "user-123", schema = @Schema(type = "string"))
+            })
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Audit logs retrieved successfully", headers = {
+                    @Header(name = "X-Transactional-Id", description = "Echoed correlation ID for distributed tracing", schema = @Schema(type = "string")),
+                    @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
+                    @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "2"))
+            }),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded", headers = {
+                    @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
+                    @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "0")),
+                    @Header(name = "X-RateLimit-Reset", description = "Unix timestamp (seconds) when the rate limit window resets", schema = @Schema(type = "integer", example = "1714000060")),
+                    @Header(name = "Retry-After", description = "Seconds to wait before making another request", schema = @Schema(type = "integer", example = "58"))
+            })
+    })
     @GetMapping("/users/{userId}")
     public Mono<ResponseEntity<PageResponse<AuditLogDetailResponse>>> getByUserId(
             @PathVariable String userId,

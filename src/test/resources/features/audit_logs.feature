@@ -10,6 +10,9 @@ Feature: Historial de Audit Logs
     And el campo "totalElements" es 25
     And el campo "totalPages" es 2
     And el campo "content" contiene 20 registros
+    And la respuesta incluye el header "X-Transactional-Id"
+    And la respuesta incluye el header "X-RateLimit-Limit"
+    And la respuesta incluye el header "X-RateLimit-Remaining"
 
   Scenario: El audit log registra los detalles de una llamada exitosa
     When envío POST /api/v1/calculations con num1=5.0 y num2=5.0
