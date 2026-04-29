@@ -166,11 +166,6 @@
 			<groupId>org.springframework.kafka</groupId>
 			<artifactId>spring-kafka</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>io.projectreactor.kafka</groupId>
-			<artifactId>reactor-kafka</artifactId>
-			<version>1.3.25</version>
-		</dependency>
 
 		<!-- ===== TEST ===== -->
 		<dependency>
@@ -256,10 +251,13 @@
 						<exclude>com/tenpo/dh/challenge/dhapi/annotation/**</exclude>
 						<!-- Spring Boot entry point -->
 						<exclude>com/tenpo/dh/challenge/dhapi/DhapiApplication*</exclude>
-						<!-- Spring Data repository interface — implementation is framework-generated -->
-						<exclude>com/tenpo/dh/challenge/dhapi/adapter/out/persistence/AuditLogR2dbcDao*</exclude>
+						<!-- Spring Data repository interface — implementation is
+						framework-generated -->
+						<exclude>
+							com/tenpo/dh/challenge/dhapi/adapter/out/persistence/AuditLogR2dbcDao*</exclude>
 						<!-- MapStruct mapper implementation — generated at compile time -->
-						<exclude>com/tenpo/dh/challenge/dhapi/adapter/in/web/mapper/AuditLogResponseMapperImpl*</exclude>
+						<exclude>
+							com/tenpo/dh/challenge/dhapi/adapter/in/web/mapper/AuditLogResponseMapperImpl*</exclude>
 					</excludes>
 				</configuration>
 				<executions>
