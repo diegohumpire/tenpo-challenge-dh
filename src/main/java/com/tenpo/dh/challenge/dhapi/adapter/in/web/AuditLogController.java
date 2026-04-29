@@ -13,12 +13,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -57,7 +59,9 @@ public class AuditLogController {
                     @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
                     @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "2"))
             }),
-            @ApiResponse(responseCode = "429", description = "Rate limit exceeded", headers = {
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded",
+                    content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)),
+                    headers = {
                     @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
                     @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "0")),
                     @Header(name = "X-RateLimit-Reset", description = "Unix timestamp (seconds) when the rate limit window resets", schema = @Schema(type = "integer", example = "1714000060")),
@@ -101,12 +105,16 @@ public class AuditLogController {
                     @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
                     @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "2"))
             }),
-            @ApiResponse(responseCode = "404", description = "Audit log not found", headers = {
+            @ApiResponse(responseCode = "404", description = "Audit log not found",
+                    content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)),
+                    headers = {
                     @Header(name = "X-Transactional-Id", description = "Echoed correlation ID for distributed tracing", schema = @Schema(type = "string")),
                     @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
                     @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "2"))
             }),
-            @ApiResponse(responseCode = "429", description = "Rate limit exceeded", headers = {
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded",
+                    content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)),
+                    headers = {
                     @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
                     @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "0")),
                     @Header(name = "X-RateLimit-Reset", description = "Unix timestamp (seconds) when the rate limit window resets", schema = @Schema(type = "integer", example = "1714000060")),
@@ -137,7 +145,9 @@ public class AuditLogController {
                     @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
                     @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "2"))
             }),
-            @ApiResponse(responseCode = "429", description = "Rate limit exceeded", headers = {
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded",
+                    content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)),
+                    headers = {
                     @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
                     @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "0")),
                     @Header(name = "X-RateLimit-Reset", description = "Unix timestamp (seconds) when the rate limit window resets", schema = @Schema(type = "integer", example = "1714000060")),
@@ -176,7 +186,9 @@ public class AuditLogController {
                     @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
                     @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "2"))
             }),
-            @ApiResponse(responseCode = "429", description = "Rate limit exceeded", headers = {
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded",
+                    content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)),
+                    headers = {
                     @Header(name = "X-RateLimit-Limit", description = "Maximum requests allowed per time window", schema = @Schema(type = "integer", example = "3")),
                     @Header(name = "X-RateLimit-Remaining", description = "Remaining requests in the current window", schema = @Schema(type = "integer", example = "0")),
                     @Header(name = "X-RateLimit-Reset", description = "Unix timestamp (seconds) when the rate limit window resets", schema = @Schema(type = "integer", example = "1714000060")),
