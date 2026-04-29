@@ -73,7 +73,7 @@ public class PercentageService implements PercentageResolverUseCase {
                 .endpoint(outcome.endpoint())
                 .requestHeaders(outcome.requestHeaders())
                 .responseHeaders(outcome.responseHeaders())
-                .responseBody("{\"percentage\":\"" + outcome.percentage().toPlainString() + "\"}")
+                .responseBody("{\"percentage\":" + outcome.percentage().toPlainString() + "}")
                 .statusCode(200)
                 .durationMs(durationMs)
                 .build());
@@ -100,7 +100,7 @@ public class PercentageService implements PercentageResolverUseCase {
                 .userId(ctx.userId())
                 .method("PUT")
                 .endpoint(CACHE_ENDPOINT)
-                .requestBody("{\"percentage\":\"" + pct.toPlainString() + "\"}")
+                .requestBody("{\"percentage\":" + pct.toPlainString() + "}")
                 .build());
     }
 
@@ -113,7 +113,7 @@ public class PercentageService implements PercentageResolverUseCase {
                 .userId(ctx.userId())
                 .method("GET")
                 .endpoint(CACHE_ENDPOINT)
-                .responseBody("{\"percentage\":\"" + pct.toPlainString() + "\"}")
+                .responseBody("{\"percentage\":" + pct.toPlainString() + "}")
                 .statusCode(200)
                 .build());
     }
