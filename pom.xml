@@ -239,8 +239,8 @@
 						<exclude>com/tenpo/dh/challenge/dhapi/DhapiApplication*</exclude>
 						<!-- Spring Data repository interface — implementation is framework-generated -->
 						<exclude>com/tenpo/dh/challenge/dhapi/adapter/out/persistence/AuditLogR2dbcDao*</exclude>
-						<!-- MapStruct mapper interface — implementation is generated at compile time -->
-						<exclude>com/tenpo/dh/challenge/dhapi/adapter/in/web/dto/AuditLogResponseMapper*</exclude>
+						<!-- MapStruct mapper implementation — generated at compile time -->
+						<exclude>com/tenpo/dh/challenge/dhapi/adapter/in/web/mapper/AuditLogResponseMapperImpl*</exclude>
 					</excludes>
 				</configuration>
 				<executions>
