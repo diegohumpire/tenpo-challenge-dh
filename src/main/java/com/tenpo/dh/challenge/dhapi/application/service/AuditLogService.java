@@ -1,6 +1,7 @@
 package com.tenpo.dh.challenge.dhapi.application.service;
 
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
+import com.tenpo.dh.challenge.dhapi.domain.model.AuditLogFilter;
 import com.tenpo.dh.challenge.dhapi.domain.model.PaginationRequest;
 import com.tenpo.dh.challenge.dhapi.domain.model.PaginationResult;
 import com.tenpo.dh.challenge.dhapi.domain.port.in.AuditLogUseCase;
@@ -29,7 +30,12 @@ public class AuditLogService implements AuditLogUseCase {
     }
 
     @Override
-    public Mono<PaginationResult<AuditLog>> findAll(PaginationRequest request) {
-        return auditLogRepository.findAll(request);
+    public Mono<AuditLog> findById(Long id) {
+        return auditLogRepository.findById(id);
+    }
+
+    @Override
+    public Mono<PaginationResult<AuditLog>> findAll(PaginationRequest request, AuditLogFilter filter) {
+        return auditLogRepository.findAll(request, filter);
     }
 }

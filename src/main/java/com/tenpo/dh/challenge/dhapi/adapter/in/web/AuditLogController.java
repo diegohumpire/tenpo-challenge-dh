@@ -1,8 +1,12 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web;
 
-import com.tenpo.dh.challenge.dhapi.adapter.in.web.dto.AuditLogResponse;
+import com.tenpo.dh.challenge.dhapi.adapter.in.web.dto.AuditLogDetailResponse;
+import com.tenpo.dh.challenge.dhapi.adapter.in.web.dto.AuditLogSummaryResponse;
 import com.tenpo.dh.challenge.dhapi.adapter.in.web.dto.PageResponse;
 import com.tenpo.dh.challenge.dhapi.adapter.in.web.mapper.AuditLogResponseMapper;
+import com.tenpo.dh.challenge.dhapi.domain.model.AuditActionType;
+import com.tenpo.dh.challenge.dhapi.domain.model.AuditLogFilter;
+import com.tenpo.dh.challenge.dhapi.domain.model.CallDirection;
 import com.tenpo.dh.challenge.dhapi.domain.model.PaginationRequest;
 import com.tenpo.dh.challenge.dhapi.domain.port.in.AuditLogUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,23 +32,81 @@ public class AuditLogController {
 
     private static final int MAX_PAGE_SIZE = 100;
     private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final String BASE_PATH = "/api/v1/audit-logs";
 
     private final AuditLogUseCase auditLogUseCase;
     private final AuditLogResponseMapper auditLogResponseMapper;
 
-    @Operation(summary = "Get paginated audit log history", description = "Returns a paginated list of all API calls recorded in the system")
+    @Operation(summary = "Get paginated audit log history",
+            description = "Returns a lightweight paginated list. Supports optional filters on indexed fields.")
     @ApiResponse(responseCode = "200", description = "Audit logs retrieved successfully")
     @GetMapping
-    public Mono<ResponseEntity<PageResponse<AuditLogResponse>>> getAuditLogs(
+    public Mono<ResponseEntity<PageResponse<AuditLogSummaryResponse>>> getAuditLogs(
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size (max " + MAX_PAGE_SIZE + ")") @RequestParam(defaultValue = "" + DEFAULT_PAGE_SIZE) int size,
-            @Parameter(description = "Sort field and direction") @RequestParam(defaultValue = "createdAt,desc") String sort) {
+            @Parameter(description = "Sort field and direction") @RequestParam(defaultValue = "createdAt,desc") String sort,
+            @Parameter(description = "Filter by userId") @RequestParam(required = false) String userId,
+            @Parameter(description = "Filter by transactionalId") @RequestParam(required = false) String transactionalId,
+            @Parameter(description = "Filter by action") @RequestParam(required = false) String action,
+            @Parameter(description = "Filter by actionType") @RequestParam(required = false) AuditActionType actionType,
+            @Parameter(description = "Filter by callDirection") @RequestParam(required = false) CallDirection callDirection) {
+
+        int cappedSize = Math.min(size, MAX_PAGE_SIZE);
+        PaginationRequest request = buildPaginationRequest(page, cappedSize, sort);
+        AuditLogFilter filter = new AuditLogFilter(userId, transactionalId, action, actionType, callDirection, java.util.List.of());
+
+        return auditLogUseCase.findAll(request, filter)
+                .map(p -> p.map(log -> auditLogResponseMapper.toSummaryResponse(log, BASE_PATH + "/" + log.getId())))
+                .map(PageResponse::from)
+                .map(ResponseEntity::ok);
+    }
+
+    @Operation(summary = "Get audit log detail",
+            description = "Returns all fields for a single audit log entry including HTTP headers and bodies.")
+    @ApiResponse(responseCode = "200", description = "Audit log found")
+    @ApiResponse(responseCode = "404", description = "Audit log not found")
+    @GetMapping("/{id}")
+    public Mono<ResponseEntity<AuditLogDetailResponse>> getAuditLogById(@PathVariable Long id) {
+        return auditLogUseCase.findById(id)
+                .map(auditLogResponseMapper::toDetailResponse)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Get audit logs by transactional ID",
+            description = "Returns all fields for a given transactional ID, excluding GET_AUDIT_LOGS entries.")
+    @ApiResponse(responseCode = "200", description = "Audit logs retrieved successfully")
+    @GetMapping("/transactions/{transactionalId}")
+    public Mono<ResponseEntity<PageResponse<AuditLogDetailResponse>>> getByTransactionalId(
+            @PathVariable String transactionalId,
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size (max " + MAX_PAGE_SIZE + ")") @RequestParam(defaultValue = "" + DEFAULT_PAGE_SIZE) int size,
+            @Parameter(description = "Sort field and direction") @RequestParam(defaultValue = "createdAt,asc") String sort) {
 
         int cappedSize = Math.min(size, MAX_PAGE_SIZE);
         PaginationRequest request = buildPaginationRequest(page, cappedSize, sort);
 
-        return auditLogUseCase.findAll(request)
-                .map(p -> p.map(auditLogResponseMapper::toResponse))
+        return auditLogUseCase.findAll(request, AuditLogFilter.forTransactionalId(transactionalId))
+                .map(p -> p.map(auditLogResponseMapper::toDetailResponse))
+                .map(PageResponse::from)
+                .map(ResponseEntity::ok);
+    }
+
+    @Operation(summary = "Get audit logs by user ID",
+            description = "Returns all fields for a given user ID, excluding GET_AUDIT_LOGS entries.")
+    @ApiResponse(responseCode = "200", description = "Audit logs retrieved successfully")
+    @GetMapping("/users/{userId}")
+    public Mono<ResponseEntity<PageResponse<AuditLogDetailResponse>>> getByUserId(
+            @PathVariable String userId,
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size (max " + MAX_PAGE_SIZE + ")") @RequestParam(defaultValue = "" + DEFAULT_PAGE_SIZE) int size,
+            @Parameter(description = "Sort field and direction") @RequestParam(defaultValue = "createdAt,asc") String sort) {
+
+        int cappedSize = Math.min(size, MAX_PAGE_SIZE);
+        PaginationRequest request = buildPaginationRequest(page, cappedSize, sort);
+
+        return auditLogUseCase.findAll(request, AuditLogFilter.forUserId(userId))
+                .map(p -> p.map(auditLogResponseMapper::toDetailResponse))
                 .map(PageResponse::from)
                 .map(ResponseEntity::ok);
     }

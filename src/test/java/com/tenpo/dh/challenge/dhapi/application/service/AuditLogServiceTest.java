@@ -1,6 +1,7 @@
 package com.tenpo.dh.challenge.dhapi.application.service;
 
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
+import com.tenpo.dh.challenge.dhapi.domain.model.AuditLogFilter;
 import com.tenpo.dh.challenge.dhapi.domain.model.PaginationRequest;
 import com.tenpo.dh.challenge.dhapi.domain.model.PaginationResult;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.AuditLogRepository;
@@ -68,12 +69,22 @@ class AuditLogServiceTest {
     void findAll_delegatesToRepository() {
         PaginationRequest request = new PaginationRequest(0, 20, "createdAt", PaginationRequest.SortDirection.DESC);
         PaginationResult<AuditLog> result = new PaginationResult<>(List.of(), 0, 20, 0L, 0);
-        when(auditLogRepository.findAll(request)).thenReturn(Mono.just(result));
+        when(auditLogRepository.findAll(any(PaginationRequest.class), any())).thenReturn(Mono.just(result));
 
         StepVerifier.create(auditLogService.findAll(request))
                 .expectNext(result)
                 .verifyComplete();
 
-        verify(auditLogRepository).findAll(request);
+        verify(auditLogRepository).findAll(any(PaginationRequest.class), any());
+    }
+
+    @Test
+    void findById_delegatesToRepository() {
+        AuditLog log = AuditLog.builder().id(1L).action("TEST").build();
+        when(auditLogRepository.findById(1L)).thenReturn(Mono.just(log));
+
+        StepVerifier.create(auditLogService.findById(1L))
+                .expectNext(log)
+                .verifyComplete();
     }
 }

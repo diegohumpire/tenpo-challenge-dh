@@ -127,6 +127,18 @@ public class AuditLogSteps {
                 .jsonPath("$.content[0].responseBody").isNotEmpty();
     }
 
+    @And("el último registro tiene endpoint no nulo")
+    public void elUltimoRegistroTieneEndpointNoNulo() {
+        scenarioContext.getLastResponse().expectBody()
+                .jsonPath("$.content[0].endpoint").isNotEmpty();
+    }
+
+    @And("el último registro tiene un link de detalle")
+    public void elUltimoRegistroTieneUnLinkDeDetalle() {
+        scenarioContext.getLastResponse().expectBody()
+                .jsonPath("$.content[0]._links.detail.href").isNotEmpty();
+    }
+
     @Then("existe un registro de audit con action={string} y actionType={string}")
     public void existeUnRegistroDeAuditConActionYActionType(String action, String actionType) {
         scenarioContext.getLastResponse().expectBody()
