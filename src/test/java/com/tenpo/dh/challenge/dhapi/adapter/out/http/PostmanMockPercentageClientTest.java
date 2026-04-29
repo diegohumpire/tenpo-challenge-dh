@@ -60,7 +60,10 @@ class PostmanMockPercentageClientTest {
         StepVerifier.create(
                 client.buildRequest()
                         .contextWrite(ctx -> ctx.put(ServerWebExchange.class, exchange)))
-                .assertNext(spec -> assertThat(spec).isNotNull())
+                .assertNext(spec -> {
+                    assertThat(spec).isNotNull();
+                    assertThat(spec.requestHeadersSummary()).contains("x-mock-response-code=500");
+                })
                 .verifyComplete();
     }
 
@@ -75,7 +78,19 @@ class PostmanMockPercentageClientTest {
         StepVerifier.create(
                 client.buildRequest()
                         .contextWrite(ctx -> ctx.put(ServerWebExchange.class, exchange)))
-                .assertNext(spec -> assertThat(spec).isNotNull())
+                .assertNext(spec -> {
+                    assertThat(spec).isNotNull();
+                    assertThat(spec.requestHeadersSummary()).contains("x-mock-percentage=25.5");
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void buildRequest_withoutContext_hasNullRequestHeadersSummary() {
+        PostmanMockPercentageClient client = createClient(mockExchangeReturning("{\"percentage\":10.0}"));
+
+        StepVerifier.create(client.buildRequest())
+                .assertNext(spec -> assertThat(spec.requestHeadersSummary()).isNull())
                 .verifyComplete();
     }
 
@@ -84,7 +99,13 @@ class PostmanMockPercentageClientTest {
         PostmanMockPercentageClient client = createClient(mockExchangeReturning("{\"percentage\":25.0}"));
 
         StepVerifier.create(client.getPercentage())
-                .assertNext(v -> assertThat(v).isEqualByComparingTo("25.0"))
+                .assertNext(outcome -> {
+                    assertThat(outcome.percentage()).isEqualByComparingTo("25.0");
+                    assertThat(outcome.endpoint()).isEqualTo(
+                            properties.getPostmanMock().getBaseUrl() + properties.getPostmanMock().getPath());
+                    assertThat(outcome.requestHeaders()).isNull();
+                    assertThat(outcome.responseHeaders()).isNotNull();
+                })
                 .verifyComplete();
     }
 

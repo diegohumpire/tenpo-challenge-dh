@@ -2,7 +2,6 @@ package com.tenpo.dh.challenge.dhapi.adapter.out.persistence;
 
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
 import com.tenpo.dh.challenge.dhapi.domain.model.PaginationRequest;
-import com.tenpo.dh.challenge.dhapi.domain.model.PaginationResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

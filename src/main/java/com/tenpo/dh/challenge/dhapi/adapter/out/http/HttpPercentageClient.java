@@ -16,14 +16,15 @@ public class HttpPercentageClient extends AbstractHttpPercentageClient {
                                 PercentageProperties properties,
                                 CircuitBreaker circuitBreaker) {
         super(builder.baseUrl(properties.getExternal().getBaseUrl()).build(),
+                properties.getExternal().getBaseUrl(),
                 properties.getExternal().getPath(),
                 circuitBreaker,
                 properties);
     }
 
     @Override
-    protected Mono<WebClient.RequestHeadersSpec<?>> buildRequest() {
-        return Mono.just(webClient.get().uri(path));
+    protected Mono<RequestSpec> buildRequest() {
+        return Mono.just(new RequestSpec(webClient.get().uri(path), null));
     }
 
     @Override

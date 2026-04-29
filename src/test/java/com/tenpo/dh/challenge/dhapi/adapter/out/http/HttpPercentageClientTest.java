@@ -193,7 +193,13 @@ class HttpPercentageClientTest {
                 cb);
 
         StepVerifier.create(client.getPercentage())
-                .assertNext(v -> assertThat(v).isEqualByComparingTo("42.0"))
+                .assertNext(outcome -> {
+                    assertThat(outcome.percentage()).isEqualByComparingTo("42.0");
+                    assertThat(outcome.endpoint()).isEqualTo(
+                            properties.getExternal().getBaseUrl() + properties.getExternal().getPath());
+                    assertThat(outcome.requestHeaders()).isNull();
+                    assertThat(outcome.responseHeaders()).isNotNull();
+                })
                 .verifyComplete();
     }
 

@@ -1,6 +1,7 @@
 package com.tenpo.dh.challenge.dhapi.adapter.out.stub;
 
 import com.tenpo.dh.challenge.dhapi.config.PercentageProperties;
+import com.tenpo.dh.challenge.dhapi.domain.model.PercentageCallOutcome;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider;
 import org.springframework.core.env.Environment;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -60,13 +61,13 @@ public class InMemoryPercentageProvider implements PercentageProvider {
     }
 
     @Override
-    public Mono<BigDecimal> getPercentage() {
+    public Mono<PercentageCallOutcome> getPercentage() {
         if (simulatingFailure.get()) {
             return Mono.error(new RuntimeException("Simulated external service failure"));
         }
         return Mono.deferContextual(ctx -> {
             if (!ctx.hasKey(ServerWebExchange.class)) {
-                return Mono.just(properties.getInMemory().getValue());
+                return Mono.just(PercentageCallOutcome.of(properties.getInMemory().getValue()));
             }
 
             ServerHttpRequest request = ctx.<ServerWebExchange>get(ServerWebExchange.class).getRequest();
@@ -89,14 +90,13 @@ public class InMemoryPercentageProvider implements PercentageProvider {
             String percentageHeader = request.getHeaders().getFirst("x-mock-percentage");
             if (percentageHeader != null) {
                 try {
-                    return Mono.just(new BigDecimal(percentageHeader.trim()));
+                    return Mono.just(PercentageCallOutcome.of(new BigDecimal(percentageHeader.trim())));
                 } catch (NumberFormatException ignored) {
                     // fall through to configured value
                 }
             }
 
-            return Mono.just(properties.getInMemory().getValue());
+            return Mono.just(PercentageCallOutcome.of(properties.getInMemory().getValue()));
         });
     }
 }
-

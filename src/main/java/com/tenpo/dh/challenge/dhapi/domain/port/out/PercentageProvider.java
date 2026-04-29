@@ -1,9 +1,8 @@
 package com.tenpo.dh.challenge.dhapi.domain.port.out;
 
+import com.tenpo.dh.challenge.dhapi.domain.model.PercentageCallOutcome;
 import reactor.core.publisher.Mono;
 
-import java.math.BigDecimal;
-
 public interface PercentageProvider {
-    Mono<BigDecimal> getPercentage();
+    Mono<PercentageCallOutcome> getPercentage();
 }

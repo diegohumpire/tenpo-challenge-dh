@@ -8,6 +8,7 @@ import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class InMemoryPercentageProviderTest {
@@ -29,7 +30,7 @@ class InMemoryPercentageProviderTest {
     @Test
     void getPercentage_noContext_returnsConfiguredValue() {
         StepVerifier.create(provider.getPercentage())
-                .expectNextMatches(v -> v.compareTo(BigDecimal.TEN) == 0)
+                .assertNext(outcome -> assertThat(outcome.percentage()).isEqualByComparingTo(BigDecimal.TEN))
                 .verifyComplete();
     }
 
@@ -48,7 +49,7 @@ class InMemoryPercentageProviderTest {
         provider.setSimulatingFailure(false);
 
         StepVerifier.create(provider.getPercentage())
-                .expectNextMatches(v -> v.compareTo(BigDecimal.TEN) == 0)
+                .assertNext(outcome -> assertThat(outcome.percentage()).isEqualByComparingTo(BigDecimal.TEN))
                 .verifyComplete();
     }
 

@@ -1,9 +1,13 @@
 package com.tenpo.dh.challenge.dhapi.application.service;
 
+import com.tenpo.dh.challenge.dhapi.domain.model.AuditActionType;
+import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
 import com.tenpo.dh.challenge.dhapi.domain.model.Calculation;
 import com.tenpo.dh.challenge.dhapi.domain.port.in.PercentageResolverUseCase;
+import com.tenpo.dh.challenge.dhapi.domain.port.out.AuditEventPublisher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -13,13 +17,16 @@ import reactor.test.StepVerifier;
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CalculationServiceTest {
 
     @Mock
     private PercentageResolverUseCase percentageResolverUseCase;
+
+    @Mock
+    private AuditEventPublisher auditEventPublisher;
 
     @InjectMocks
     private CalculationService calculationService;
@@ -81,5 +88,24 @@ class CalculationServiceTest {
         assertThat(calc.sum()).isEqualByComparingTo("10");
         assertThat(calc.percentage()).isEqualByComparingTo("10");
         assertThat(calc.result()).isEqualByComparingTo("11.0");
+    }
+
+    @Test
+    void calculate_withValidNumbers_publishesSystemAuditEvent() {
+        BigDecimal num1 = BigDecimal.valueOf(5);
+        BigDecimal num2 = BigDecimal.valueOf(5);
+        when(percentageResolverUseCase.resolvePercentage()).thenReturn(Mono.just(BigDecimal.valueOf(10)));
+
+        calculationService.calculate(num1, num2).block();
+
+        ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
+        verify(auditEventPublisher).publish(captor.capture());
+
+        AuditLog log = captor.getValue();
+        assertThat(log.getAction()).isEqualTo("CALCULATE");
+        assertThat(log.getActionType()).isEqualTo(AuditActionType.SYSTEM);
+        assertThat(log.getCallDirection()).isNull();
+        assertThat(log.getRequestBody()).contains("num1", "5");
+        assertThat(log.getResponseBody()).contains("sum", "result");
     }
 }

@@ -127,6 +127,14 @@ public class AuditLogSteps {
                 .jsonPath("$.content[0].responseBody").isNotEmpty();
     }
 
+    @Then("existe un registro de audit con action={string} y actionType={string}")
+    public void existeUnRegistroDeAuditConActionYActionType(String action, String actionType) {
+        scenarioContext.getLastResponse().expectBody()
+                .jsonPath("$.content[?(@.action == '%s' && @.actionType == '%s')]"
+                        .formatted(action, actionType))
+                .isNotEmpty();
+    }
+
     @Given("el servicio de persistencia de audit logs lanza una excepción")
     public void elServicioDePersistenciaLanzaUnaExcepcion() {
         // Audit log failures are swallowed by fire-and-forget — main response is

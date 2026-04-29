@@ -1,16 +1,18 @@
 package com.tenpo.dh.challenge.dhapi.adapter.out.http;
 
 import com.tenpo.dh.challenge.dhapi.config.PercentageProperties;
+import com.tenpo.dh.challenge.dhapi.domain.model.PercentageCallOutcome;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
-import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.stream.Collectors;
 
 /**
  * Base abstracta para implementaciones de {@link PercentageProvider} basadas en HTTP.
@@ -20,22 +22,31 @@ import java.time.Duration;
  * {@link PostmanMockPercentageClient}.
  * <p>
  * Las subclases solo necesitan proveer el método {@link #buildRequest()} con el
- * {@code WebClient.RequestHeadersSpec} apropiado para su fuente de datos.
+ * {@code RequestSpec} apropiado para su fuente de datos.
  */
 @Slf4j
 public abstract class AbstractHttpPercentageClient implements PercentageProvider {
 
+    /**
+     * Holds the WebClient request spec together with a summary of any outgoing
+     * headers added by the subclass (for audit purposes).
+     */
+    record RequestSpec(WebClient.RequestHeadersSpec<?> spec, String requestHeadersSummary) {}
+
     protected final WebClient webClient;
+    protected final String baseUrl;
     protected final String path;
     protected final CircuitBreaker circuitBreaker;
     protected final PercentageProperties.Retry retryConfig;
     protected final Duration timeout;
 
     protected AbstractHttpPercentageClient(WebClient webClient,
+                                            String baseUrl,
                                             String path,
                                             CircuitBreaker circuitBreaker,
                                             PercentageProperties properties) {
         this.webClient = webClient;
+        this.baseUrl = baseUrl;
         this.path = path;
         this.circuitBreaker = circuitBreaker;
         this.retryConfig = properties.getRetry();
@@ -43,11 +54,21 @@ public abstract class AbstractHttpPercentageClient implements PercentageProvider
     }
 
     @Override
-    public Mono<BigDecimal> getPercentage() {
+    public Mono<PercentageCallOutcome> getPercentage() {
+        String endpoint = baseUrl + path;
         return buildRequest()
-                .flatMap(request -> request.retrieve()
-                        .bodyToMono(PercentageResponse.class))
-                .map(PercentageResponse::percentage)
+                .flatMap(requestSpec -> requestSpec.spec().exchangeToMono(response -> {
+                    if (response.statusCode().is2xxSuccessful()) {
+                        String responseHeaders = headersToString(response.headers().asHttpHeaders());
+                        return response.bodyToMono(PercentageResponse.class)
+                                .map(body -> PercentageCallOutcome.ofHttp(
+                                        body.percentage(),
+                                        endpoint,
+                                        requestSpec.requestHeadersSummary(),
+                                        responseHeaders));
+                    }
+                    return response.createException().flatMap(Mono::error);
+                }))
                 .timeout(timeout)
                 .retryWhen(Retry.backoff(
                                 retryConfig.getMaxAttempts(),
@@ -65,9 +86,9 @@ public abstract class AbstractHttpPercentageClient implements PercentageProvider
      * Construye la request HTTP específica del cliente.
      * El pipeline de timeout/retry/circuit breaker se aplica automáticamente.
      *
-     * @return {@code Mono} con el spec de la request listo para ejecutar
+     * @return {@code Mono} con un {@link RequestSpec} listo para ejecutar
      */
-    protected abstract Mono<WebClient.RequestHeadersSpec<?>> buildRequest();
+    protected abstract Mono<RequestSpec> buildRequest();
 
     /**
      * Nombre del servicio externo para incluir en logs de retry y error.
@@ -75,4 +96,10 @@ public abstract class AbstractHttpPercentageClient implements PercentageProvider
      * @return nombre descriptivo del servicio (e.g. "ExternalPercentageService")
      */
     protected abstract String getServiceName();
+
+    private String headersToString(HttpHeaders headers) {
+        return headers.toSingleValueMap().entrySet().stream()
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .collect(Collectors.joining(", "));
+    }
 }

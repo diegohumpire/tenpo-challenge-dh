@@ -26,3 +26,21 @@ Feature: Historial de Audit Logs
     When envío POST /api/v1/calculations con num1=5.0 y num2=5.0
     Then la respuesta es 201 Created
     And el campo "result" es 11.0
+
+  Scenario: El audit log registra la llamada al servicio externo de porcentaje
+    When envío POST /api/v1/calculations con num1=5.0 y num2=5.0
+    And espero a que el registro asíncrono se complete
+    And consulto GET /api/v1/audit-logs?page=0&size=20
+    Then existe un registro de audit con action="GET_EXTERNAL_PERCENTAGE" y actionType="EXTERNAL_CALL"
+
+  Scenario: El audit log registra el acceso a caché del porcentaje
+    When envío POST /api/v1/calculations con num1=5.0 y num2=5.0
+    And espero a que el registro asíncrono se complete
+    And consulto GET /api/v1/audit-logs?page=0&size=20
+    Then existe un registro de audit con action="CACHE_PUT_PERCENTAGE" y actionType="CACHE_ACCESS"
+
+  Scenario: El audit log registra el cálculo como evento SYSTEM
+    When envío POST /api/v1/calculations con num1=5.0 y num2=5.0
+    And espero a que el registro asíncrono se complete
+    And consulto GET /api/v1/audit-logs?page=0&size=20
+    Then existe un registro de audit con action="CALCULATE" y actionType="SYSTEM"

@@ -7,6 +7,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 /**
  * {@link com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider} backed by a Postman mock server.
  * <p>
@@ -22,15 +26,17 @@ public class PostmanMockPercentageClient extends AbstractHttpPercentageClient {
                                         PercentageProperties properties,
                                         CircuitBreaker circuitBreaker) {
         super(builder.baseUrl(properties.getPostmanMock().getBaseUrl()).build(),
+                properties.getPostmanMock().getBaseUrl(),
                 properties.getPostmanMock().getPath(),
                 circuitBreaker,
                 properties);
     }
 
     @Override
-    protected Mono<WebClient.RequestHeadersSpec<?>> buildRequest() {
+    protected Mono<RequestSpec> buildRequest() {
         return Mono.deferContextual(ctx -> {
             WebClient.RequestHeadersSpec<?> request = webClient.get().uri(path);
+            Map<String, String> addedHeaders = new LinkedHashMap<>();
 
             if (ctx.hasKey(ServerWebExchange.class)) {
                 HttpHeaders incomingHeaders = ctx.<ServerWebExchange>get(ServerWebExchange.class)
@@ -39,15 +45,22 @@ public class PostmanMockPercentageClient extends AbstractHttpPercentageClient {
                 String mockResponseCode = incomingHeaders.getFirst("x-mock-response-code");
                 if (mockResponseCode != null) {
                     request = request.header("x-mock-response-code", mockResponseCode);
+                    addedHeaders.put("x-mock-response-code", mockResponseCode);
                 }
 
                 String mockPercentage = incomingHeaders.getFirst("x-mock-percentage");
                 if (mockPercentage != null) {
                     request = request.header("x-mock-percentage", mockPercentage);
+                    addedHeaders.put("x-mock-percentage", mockPercentage);
                 }
             }
 
-            return Mono.just(request);
+            String headersSummary = addedHeaders.isEmpty() ? null
+                    : addedHeaders.entrySet().stream()
+                            .map(e -> e.getKey() + "=" + e.getValue())
+                            .collect(Collectors.joining(", "));
+
+            return Mono.just(new RequestSpec(request, headersSummary));
         });
     }
 
