@@ -4,16 +4,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditActionType;
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
 import com.tenpo.dh.challenge.dhapi.domain.model.CallDirection;
+import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import reactor.core.publisher.Flux;
-import reactor.kafka.sender.KafkaSender;
 
 import java.time.OffsetDateTime;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -24,30 +27,38 @@ class KafkaAuditEventPublisherTest {
     private static final String TOPIC = "audit-events";
 
     @Mock
-    private KafkaSender<String, String> kafkaSender;
+    private KafkaProducer<String, String> kafkaProducer;
 
     private KafkaAuditEventPublisher publisher;
 
     @BeforeEach
     void setUp() {
-        publisher = new KafkaAuditEventPublisher(kafkaSender, new ObjectMapper().findAndRegisterModules(), TOPIC);
+        publisher = new KafkaAuditEventPublisher(() -> kafkaProducer, new ObjectMapper().findAndRegisterModules(), TOPIC);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void publish_validAuditLog_sendsJsonToKafkaTopic() throws InterruptedException {
-        doReturn(Flux.empty()).when(kafkaSender).send(any());
+        doAnswer(invocation -> {
+            Callback callback = invocation.getArgument(1);
+            callback.onCompletion(null, null);
+            return mock(Future.class);
+        }).when(kafkaProducer).send(any(), any());
 
         publisher.publish(buildAuditLog());
 
         Thread.sleep(200);
-        verify(kafkaSender, times(1)).send(any());
+        verify(kafkaProducer, times(1)).send(any(), any());
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void publish_kafkaSendFails_doesNotPropagateException() {
-        doReturn(Flux.error(new RuntimeException("Kafka down"))).when(kafkaSender).send(any());
+        doAnswer(invocation -> {
+            Callback callback = invocation.getArgument(1);
+            callback.onCompletion(null, new RuntimeException("Kafka down"));
+            return mock(Future.class);
+        }).when(kafkaProducer).send(any(), any());
 
         assertThatNoException().isThrownBy(() -> publisher.publish(buildAuditLog()));
     }
@@ -58,10 +69,53 @@ class KafkaAuditEventPublisherTest {
         when(brokenMapper.writeValueAsString(any()))
                 .thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("forced") {});
         KafkaAuditEventPublisher brokenPublisher =
-                new KafkaAuditEventPublisher(kafkaSender, brokenMapper, TOPIC);
+                new KafkaAuditEventPublisher(() -> kafkaProducer, brokenMapper, TOPIC);
 
         assertThatNoException().isThrownBy(() -> brokenPublisher.publish(buildAuditLog()));
-        verifyNoInteractions(kafkaSender);
+        verifyNoInteractions(kafkaProducer);
+    }
+
+    @Test
+    void publish_producerFactoryNotCalledAtConstruction() {
+        AtomicInteger factoryCalls = new AtomicInteger(0);
+
+        new KafkaAuditEventPublisher(
+                () -> { factoryCalls.incrementAndGet(); return kafkaProducer; },
+                new ObjectMapper().findAndRegisterModules(),
+                TOPIC);
+
+        assertThat(factoryCalls.get()).isZero();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void publish_firstPublish_callsFactoryExactlyOnce() throws InterruptedException {
+        AtomicInteger factoryCalls = new AtomicInteger(0);
+        KafkaAuditEventPublisher lazyPublisher = new KafkaAuditEventPublisher(
+                () -> { factoryCalls.incrementAndGet(); return kafkaProducer; },
+                new ObjectMapper().findAndRegisterModules(),
+                TOPIC);
+
+        doAnswer(inv -> {
+            ((Callback) inv.getArgument(1)).onCompletion(null, null);
+            return mock(Future.class);
+        }).when(kafkaProducer).send(any(), any());
+
+        lazyPublisher.publish(buildAuditLog());
+        lazyPublisher.publish(buildAuditLog());
+        Thread.sleep(200);
+
+        assertThat(factoryCalls.get()).isEqualTo(1); // created once, reused on second call
+    }
+
+    @Test
+    void publish_producerFactoryThrows_errorIsSwallowed() {
+        KafkaAuditEventPublisher failPublisher = new KafkaAuditEventPublisher(
+                () -> { throw new RuntimeException("Broker unavailable"); },
+                new ObjectMapper().findAndRegisterModules(),
+                TOPIC);
+
+        assertThatNoException().isThrownBy(() -> failPublisher.publish(buildAuditLog()));
     }
 
     private AuditLog buildAuditLog() {
