@@ -7,11 +7,10 @@ import org.springframework.context.annotation.Import;
 /**
  * Activates {@link PercentageProperties} binding and imports
  * {@link PercentageProviderRegistrar} to dynamically register the correct
- * {@link com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider}
- * implementation.
+ * {@link com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider} implementation.
  */
 @Configuration
-@Import({ PercentageProviderRegistrar.class, ResilienceConfig.class })
+@Import({PercentageProviderRegistrar.class, ResilienceConfig.class})
 @EnableConfigurationProperties(PercentageProperties.class)
 public class PercentageProviderConfig {
 }
