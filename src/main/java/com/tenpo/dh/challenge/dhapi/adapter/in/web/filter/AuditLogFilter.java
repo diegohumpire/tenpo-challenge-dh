@@ -11,6 +11,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
@@ -20,6 +21,7 @@ import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -78,8 +80,35 @@ public class AuditLogFilter implements WebFilter {
                         }
                     };
 
+                    // Capture the response body and inject X-Transactional-Id into response headers.
+                    AtomicReference<String> responseBodyRef = new AtomicReference<>("");
+                    ServerHttpResponseDecorator responseDecorator = new ServerHttpResponseDecorator(exchange.getResponse()) {
+                        @Override
+                        public Mono<Void> writeWith(org.reactivestreams.Publisher<? extends DataBuffer> body) {
+                            return DataBufferUtils.join(Flux.from(body))
+                                    .flatMap(buffer -> {
+                                        byte[] respBytes = new byte[buffer.readableByteCount()];
+                                        buffer.read(respBytes);
+                                        DataBufferUtils.release(buffer);
+                                        responseBodyRef.set(sanitizeRequestBody(
+                                                new String(respBytes, StandardCharsets.UTF_8)));
+                                        return super.writeWith(
+                                                Mono.fromSupplier(() -> bufferFactory().wrap(respBytes)));
+                                    })
+                                    .switchIfEmpty(super.writeWith(Flux.empty()));
+                        }
+                    };
+
+                    // Echo X-Transactional-Id back in every response before headers are committed.
+                    responseDecorator.beforeCommit(() -> {
+                        responseDecorator.getHeaders().set(
+                                RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, transactionalId);
+                        return Mono.empty();
+                    });
+
                     ServerWebExchange mutatedExchange = exchange.mutate()
                             .request(decoratedRequest)
+                            .response(responseDecorator)
                             .build();
 
                     return chain.filter(mutatedExchange)
@@ -96,6 +125,8 @@ public class AuditLogFilter implements WebFilter {
                                             formatQueryParams(req),
                                             headersToString(req.getHeaders()),
                                             requestBody,
+                                            headersToString(resp.getHeaders()),
+                                            responseBodyRef.get(),
                                             resp.getStatusCode() != null ? resp.getStatusCode().value() : null,
                                             System.currentTimeMillis() - startTime);
 

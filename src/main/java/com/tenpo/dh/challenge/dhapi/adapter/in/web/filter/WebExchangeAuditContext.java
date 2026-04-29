@@ -15,5 +15,7 @@ public record WebExchangeAuditContext(
         String params,
         String requestHeaders,
         String requestBody,
+        String responseHeaders,
+        String responseBody,
         Integer statusCode,
         long durationMs) {}

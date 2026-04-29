@@ -100,6 +100,11 @@ public class CalculationSteps {
                 .value(v -> assertThat(((Number) v).doubleValue()).isEqualTo(expectedValue));
     }
 
+    @And("^la respuesta incluye el header \"([^\"]*)\"$")
+    public void laRespuestaIncluyeElHeader(String headerName) {
+        scenarioContext.getLastResponse().expectHeader().exists(headerName);
+    }
+
     @And("el body contiene un Problem Detail con status {int}")
     public void elBodyContieneUnProblemDetailConStatus(int status) {
         scenarioContext.getLastResponse().expectBody()

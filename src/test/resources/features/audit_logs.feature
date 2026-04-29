@@ -19,6 +19,7 @@ Feature: Historial de Audit Logs
     And el último registro tiene actionType="CALCULATION"
     And el último registro tiene callDirection="IN"
     And el último registro tiene statusCode=201
+    And el último registro tiene responseBody no nulo
 
   Scenario: Si el registro falla, la respuesta principal no se ve afectada
     Given el servicio de persistencia de audit logs lanza una excepción

@@ -20,8 +20,6 @@ public interface WebExchangeAuditLogMapper {
     @Mapping(target = "action", expression = "java(resolveAction(context))")
     @Mapping(target = "actionType", expression = "java(resolveActionType(context.path()))")
     @Mapping(target = "callDirection", constant = "IN")
-    @Mapping(target = "responseHeaders", ignore = true)
-    @Mapping(target = "responseBody", ignore = true)
     @Mapping(target = "errorMessage", ignore = true)
     @Mapping(source = "path", target = "endpoint")
     AuditLog toAuditLog(WebExchangeAuditContext context);

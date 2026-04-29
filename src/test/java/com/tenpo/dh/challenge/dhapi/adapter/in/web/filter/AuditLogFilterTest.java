@@ -11,9 +11,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -144,6 +147,53 @@ class AuditLogFilterTest {
         String captured = contextCaptor.getValue().requestBody();
         assertThat(captured).doesNotContain("\n");
         assertThat(captured).doesNotContain("  ");
+    }
+
+    @Test
+    void filter_calculationsPath_addsTransactionalIdToResponseHeader() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/v1/calculations")
+                        .header(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, TXN_ID)
+                        .header(RequestHeadersFilter.HEADER_USER_ID, USER_ID)
+                        .build());
+
+        when(chain.filter(any())).thenAnswer(invocation -> {
+            ServerWebExchange ex = invocation.getArgument(0);
+            byte[] respBytes = "{}".getBytes(StandardCharsets.UTF_8);
+            return ex.getResponse().writeWith(
+                    Mono.fromSupplier(() -> ex.getResponse().bufferFactory().wrap(respBytes)));
+        });
+
+        StepVerifier.create(filter.filter(exchange, chain))
+                .verifyComplete();
+
+        assertThat(exchange.getResponse().getHeaders().getFirst(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID))
+                .isEqualTo(TXN_ID);
+    }
+
+    @Test
+    void filter_withResponseBody_capturesResponseBodyInContext() {
+        String responseJson = "{\"result\":11.0}";
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/v1/calculations")
+                        .header(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, TXN_ID)
+                        .header(RequestHeadersFilter.HEADER_USER_ID, USER_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"num1\":5.0,\"num2\":5.0}"));
+
+        when(chain.filter(any())).thenAnswer(invocation -> {
+            ServerWebExchange ex = invocation.getArgument(0);
+            byte[] respBytes = responseJson.getBytes(StandardCharsets.UTF_8);
+            return ex.getResponse().writeWith(
+                    Mono.fromSupplier(() -> ex.getResponse().bufferFactory().wrap(respBytes)));
+        });
+
+        StepVerifier.create(filter.filter(exchange, chain))
+                .verifyComplete();
+
+        ArgumentCaptor<WebExchangeAuditContext> contextCaptor = ArgumentCaptor.forClass(WebExchangeAuditContext.class);
+        verify(auditLogMapper).toAuditLog(contextCaptor.capture());
+        assertThat(contextCaptor.getValue().responseBody()).isEqualTo(responseJson);
     }
 
     @Test

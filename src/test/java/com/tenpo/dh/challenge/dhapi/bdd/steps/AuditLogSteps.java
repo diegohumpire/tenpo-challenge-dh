@@ -121,6 +121,12 @@ public class AuditLogSteps {
                 .jsonPath("$.content[0].statusCode").isEqualTo(statusCode);
     }
 
+    @And("el último registro tiene responseBody no nulo")
+    public void elUltimoRegistroTieneResponseBodyNoNulo() {
+        scenarioContext.getLastResponse().expectBody()
+                .jsonPath("$.content[0].responseBody").isNotEmpty();
+    }
+
     @Given("el servicio de persistencia de audit logs lanza una excepción")
     public void elServicioDePersistenciaLanzaUnaExcepcion() {
         // Audit log failures are swallowed by fire-and-forget — main response is

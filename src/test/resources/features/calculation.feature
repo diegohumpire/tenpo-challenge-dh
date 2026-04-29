@@ -10,6 +10,7 @@ Feature: Cálculo con porcentaje dinámico
     And el campo "result" es 11.0
     And el campo "sum" es 10.0
     And el campo "percentage" es 10.0
+    And la respuesta incluye el header "X-Transactional-Id"
 
   Scenario: Cálculo con campo requerido faltante
     When envío POST /api/v1/calculations con num1=null y num2=5.0
