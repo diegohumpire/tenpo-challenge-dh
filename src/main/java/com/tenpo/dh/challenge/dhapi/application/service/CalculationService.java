@@ -36,8 +36,10 @@ public class CalculationService implements CalculationUseCase {
                 .actionType(AuditActionType.SYSTEM)
                 .transactionalId(ctx.transactionalId())
                 .userId(ctx.userId())
-                .requestBody("{\"num1\":\"" + num1.toPlainString() + "\",\"num2\":\"" + num2.toPlainString() + "\"}")
-                .responseBody("{\"sum\":\"" + calc.sum().toPlainString() + "\",\"percentage\":\"" + calc.percentage().toPlainString() + "\",\"result\":\"" + calc.result().toPlainString() + "\"}")
+                .requestBody("{\"num1\":" + num1.toPlainString() + ",\"num2\":" + num2.toPlainString() + "}")
+                .responseBody("{\"sum\":" + calc.sum().toPlainString() + ",\"percentage\":"
+                        + calc.percentage().toPlainString() + ",\"result\":" + calc.result().toPlainString()
+                        + "}")
                 .build());
     }
 }
