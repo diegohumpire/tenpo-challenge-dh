@@ -8,7 +8,6 @@ import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.errors.WakeupException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -41,7 +40,6 @@ public class KafkaAuditLogConsumer {
     private final ObjectMapper objectMapper;
     private final long retryDelayMs;
 
-    @Autowired
     public KafkaAuditLogConsumer(
             Supplier<KafkaConsumer<String, String>> consumerFactory,
             AuditLogUseCase auditLogUseCase,
@@ -107,16 +105,9 @@ public class KafkaAuditLogConsumer {
                 log.info("Kafka audit consumer connected to broker");
                 try {
                     while (!stopped) {
-                        var records = kafkaConsumer.poll(Duration.ofMillis(500));
-                        if (!records.isEmpty()) {
-                            log.info("Kafka audit consumer: received {} record(s)", records.count());
-                            records.forEach(record -> processRecord(record.value()));
-                            kafkaConsumer.commitAsync((offsets, ex) -> {
-                                if (ex != null) {
-                                    log.warn("Kafka audit consumer: offset commit failed — {}", ex.getMessage());
-                                }
-                            });
-                        }
+                        kafkaConsumer.poll(Duration.ofMillis(500))
+                                .forEach(record -> processRecord(record.value()));
+                        kafkaConsumer.commitAsync();
                     }
                 } catch (WakeupException e) {
                     log.info("Kafka audit consumer received wakeup — shutting down");
@@ -148,7 +139,6 @@ public class KafkaAuditLogConsumer {
     }
 
     private void processRecord(String json) {
-        log.info("Kafka audit consumer: persisting record ({} bytes)", json.length());
         deserialize(json)
                 .flatMap(auditLogUseCase::save)
                 .doOnError(e -> log.error("Failed to persist audit log from Kafka: {}", e.getMessage()))

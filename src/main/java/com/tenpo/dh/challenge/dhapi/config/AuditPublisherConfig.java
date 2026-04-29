@@ -3,11 +3,8 @@ package com.tenpo.dh.challenge.dhapi.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,7 +13,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,7 +33,6 @@ import java.util.function.Supplier;
  *   <li>{@code kafka}            → {@link com.tenpo.dh.challenge.dhapi.adapter.out.messaging.KafkaAuditEventPublisher} + Kafka consumer</li>
  * </ul>
  */
-@Slf4j
 @Configuration
 @Import(AuditPublisherRegistrar.class)
 @EnableConfigurationProperties(AuditPublisherProperties.class)
@@ -65,24 +60,9 @@ public class AuditPublisherConfig {
         consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         consumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         String topic = properties.getKafka().getTopic();
-        log.info("Kafka audit consumer factory configured: bootstrap={}, group={}, topic={}",
-                properties.getKafka().getBootstrapServers(),
-                properties.getKafka().getConsumerGroup(),
-                topic);
         return () -> {
             KafkaConsumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
-            consumer.subscribe(Collections.singleton(topic), new ConsumerRebalanceListener() {
-                @Override
-                public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-                    if (!partitions.isEmpty()) {
-                        log.info("Kafka audit consumer: partitions REVOKED — {}", partitions);
-                    }
-                }
-                @Override
-                public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-                    log.info("Kafka audit consumer: partitions ASSIGNED — {}", partitions);
-                }
-            });
+            consumer.subscribe(Collections.singleton(topic));
             return consumer;
         };
     }
