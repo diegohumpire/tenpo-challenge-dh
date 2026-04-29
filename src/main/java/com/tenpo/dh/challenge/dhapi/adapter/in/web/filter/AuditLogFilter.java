@@ -42,22 +42,23 @@ public class AuditLogFilter implements WebFilter {
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String path = exchange.getRequest().getPath().value();
         if (isExcluded(path)) {
-            log.info("Excluded path `{}`", path);
+            log.info("Path excluido `{}`", path);
             return chain.filter(exchange);
         }
 
         long startTime = System.currentTimeMillis();
-        // X-Transactional-Id and X-User-Id are guaranteed to be present by
-        // RequestHeadersFilter, which runs at @Order(2) before this filter.
+        // X-Transactional-Id y X-User-Id están asegurados por RequestHeadersFilter,
+        // que se ejecuta en @Order(2) antes que este filter.
         String transactionalId = exchange.getRequest().getHeaders()
                 .getFirst(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID);
         String userId = exchange.getRequest().getHeaders()
                 .getFirst(RequestHeadersFilter.HEADER_USER_ID);
 
-        // Eagerly read and buffer the entire request body once.
-        // This prevents multiple subscriptions to the underlying (potentially unicast)
-        // body publisher that would occur if the decorator's getBody() were subscribed
-        // to more than once by the handler or the test infrastructure.
+        // Lee y almacena en buffer el request body completo una sola vez.
+        // Esto evita múltiples subscripciones al body publisher subyacente
+        // (potencialmente unicast), que sucederían si el getBody() del decorator
+        // (decorator) fuera suscrito más de una vez por el handler o la infra
+        // de tests.
         return DataBufferUtils.join(exchange.getRequest().getBody())
                 .map(buffer -> {
                     byte[] bytes = new byte[buffer.readableByteCount()];
@@ -71,8 +72,8 @@ public class AuditLogFilter implements WebFilter {
                             ? sanitizeRequestBody(new String(bytes, StandardCharsets.UTF_8))
                             : "";
 
-                    // Provide a fresh DataBuffer view of the pre-read bytes on every
-                    // getBody() call so the handler can always deserialize the body.
+                    // Provee una vista nueva del DataBuffer con los bytes ya leídos en cada
+                    // llamada a getBody(), para que el handler siempre pueda deserializar el body.
                     ServerHttpRequest decoratedRequest = new ServerHttpRequestDecorator(exchange.getRequest()) {
                         @Override
                         public Flux<DataBuffer> getBody() {
@@ -80,9 +81,11 @@ public class AuditLogFilter implements WebFilter {
                         }
                     };
 
-                    // Capture the response body and inject X-Transactional-Id into response headers.
+                    // Captura el response body e inyecta X-Transactional-Id en los response
+                    // headers.
                     AtomicReference<String> responseBodyRef = new AtomicReference<>("");
-                    ServerHttpResponseDecorator responseDecorator = new ServerHttpResponseDecorator(exchange.getResponse()) {
+                    ServerHttpResponseDecorator responseDecorator = new ServerHttpResponseDecorator(
+                            exchange.getResponse()) {
                         @Override
                         public Mono<Void> writeWith(org.reactivestreams.Publisher<? extends DataBuffer> body) {
                             return DataBufferUtils.join(Flux.from(body))
@@ -99,7 +102,8 @@ public class AuditLogFilter implements WebFilter {
                         }
                     };
 
-                    // Echo X-Transactional-Id back in every response before headers are committed.
+                    // Inyecta X-Transactional-Id en cada respuesta antes de que los headers sean
+                    // confirmados (committed).
                     responseDecorator.beforeCommit(() -> {
                         responseDecorator.getHeaders().set(
                                 RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, transactionalId);
@@ -132,7 +136,7 @@ public class AuditLogFilter implements WebFilter {
 
                                     auditEventPublisher.publish(auditLogMapper.toAuditLog(context));
                                 } catch (Exception e) {
-                                    log.error("Error building audit log entry: {}", e.getMessage());
+                                    log.error("Error al construir el audit log entry: {}", e.getMessage());
                                 }
                             });
                 });
@@ -143,8 +147,9 @@ public class AuditLogFilter implements WebFilter {
     }
 
     /**
-     * Compacts a request body string to a single-line JSON with no extra whitespace.
-     * If the body is not valid JSON, returns a single-line trimmed version.
+     * Compacta el body string a un JSON de una sola línea sin espacios extra.
+     * Si el body no es un JSON válido, retorna una versión de una sola línea sin
+     * espacios al inicio/fin.
      */
     private String sanitizeRequestBody(String body) {
         if (body == null || body.isBlank()) {
