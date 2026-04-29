@@ -5,10 +5,6 @@ spring:
         compose:
             enabled: false
 
-    jackson:
-        serialization:
-            write-bigdecimal-as-plain: true
-
     r2dbc:
         url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/tenpo_db}
         username: ${SPRING_R2DBC_USERNAME:tenpo}

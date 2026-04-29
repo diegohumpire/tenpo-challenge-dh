@@ -13,7 +13,8 @@ public record Calculation(
     public static Calculation of(BigDecimal num1, BigDecimal num2, BigDecimal percentage) {
         BigDecimal sum = num1.add(num2);
         BigDecimal increase = sum.multiply(percentage).divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
-        BigDecimal result = sum.add(increase).stripTrailingZeros();
+        BigDecimal stripped = sum.add(increase).stripTrailingZeros();
+        BigDecimal result = stripped.scale() < 0 ? stripped.setScale(0) : stripped;
         return new Calculation(num1, num2, sum, percentage, result);
     }
 }
