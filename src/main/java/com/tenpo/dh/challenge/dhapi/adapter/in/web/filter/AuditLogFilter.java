@@ -3,7 +3,7 @@ package com.tenpo.dh.challenge.dhapi.adapter.in.web.filter;
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditActionType;
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
 import com.tenpo.dh.challenge.dhapi.domain.model.CallDirection;
-import com.tenpo.dh.challenge.dhapi.domain.port.in.AuditLogUseCase;
+import com.tenpo.dh.challenge.dhapi.domain.port.out.AuditEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -38,7 +38,7 @@ public class AuditLogFilter implements WebFilter {
     private static final List<String> EXCLUDED_PREFIXES = List.of(
             "/actuator", "/swagger-ui", "/v3/api-docs", "/mock", "/webjars", "/mock/percentage");
 
-    private final AuditLogUseCase auditLogUseCase;
+    private final AuditEventPublisher auditEventPublisher;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
@@ -98,7 +98,7 @@ public class AuditLogFilter implements WebFilter {
                         AuditLog auditLog = AuditLog.builder()
                                 .createdAt(OffsetDateTime.now())
                                 .action(resolveAction(req))
-                                .actionType(AuditActionType.HTTP_REQUEST)
+                                .actionType(resolveActionType(path))
                                 .callDirection(CallDirection.IN)
                                 .transactionalId(transactionalId)
                                 .method(req.getMethod().name())
@@ -112,11 +112,7 @@ public class AuditLogFilter implements WebFilter {
                                 .durationMs(durationMs)
                                 .build();
 
-                        auditLogUseCase.save(auditLog)
-                                .subscribe(
-                                        saved -> {
-                                        },
-                                        err -> log.error("Async audit log save failed: {}", err.getMessage()));
+                        auditEventPublisher.publish(auditLog);
                     } catch (Exception e) {
                         log.error("Error building audit log entry: {}", e.getMessage());
                     }
@@ -135,6 +131,14 @@ public class AuditLogFilter implements WebFilter {
         if (path.contains("/audit-logs"))
             return "GET_AUDIT_LOGS";
         return method + "_" + path.replaceAll("[^a-zA-Z0-9]", "_").toUpperCase();
+    }
+
+    private AuditActionType resolveActionType(String path) {
+        if (path.contains("/calculations"))
+            return AuditActionType.CALCULATION;
+        if (path.contains("/audit-logs"))
+            return AuditActionType.HTTP_REQUEST;
+        return AuditActionType.HTTP_REQUEST;
     }
 
     private String formatQueryParams(ServerHttpRequest req) {
