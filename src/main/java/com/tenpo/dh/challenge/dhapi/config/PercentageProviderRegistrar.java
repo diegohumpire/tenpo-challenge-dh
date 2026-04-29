@@ -32,7 +32,9 @@ class PercentageProviderRegistrar implements BeanRegistrar {
                     "percentageProvider",
                     InMemoryPercentageProvider.class,
                     spec -> spec.supplier(ctx ->
-                            new InMemoryPercentageProvider(ctx.bean(PercentageProperties.class))));
+                            new InMemoryPercentageProvider(
+                                    ctx.bean(PercentageProperties.class),
+                                    env)));
 
             case "postman-mock" -> registry.registerBean(
                     "percentageProvider",

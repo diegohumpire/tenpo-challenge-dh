@@ -1,5 +1,6 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.AuditEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +39,7 @@ class AuditLogFilterTest {
 
     @BeforeEach
     void setUp() {
-        filter = new AuditLogFilter(auditEventPublisher, auditLogMapper);
+        filter = new AuditLogFilter(auditEventPublisher, auditLogMapper, new ObjectMapper());
         when(chain.filter(any())).thenReturn(Mono.empty());
         lenient().when(auditLogMapper.toAuditLog(any())).thenReturn(AuditLog.builder().build());
     }
@@ -123,6 +124,27 @@ class AuditLogFilterTest {
         ArgumentCaptor<WebExchangeAuditContext> contextCaptor = ArgumentCaptor.forClass(WebExchangeAuditContext.class);
         verify(auditLogMapper).toAuditLog(contextCaptor.capture());
         assertThat(contextCaptor.getValue().requestBody()).isEqualTo(jsonBody);
+    }
+
+    @Test
+    void filter_withPrettyPrintedJsonBody_sanitizesToSingleLine() {
+        String prettyJson = "{\n  \"num1\": 5.0,\n  \"num2\": 5.0\n}";
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/v1/calculations")
+                        .header(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, TXN_ID)
+                        .header(RequestHeadersFilter.HEADER_USER_ID, USER_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(prettyJson));
+
+        StepVerifier.create(filter.filter(exchange, chain))
+                .verifyComplete();
+
+        ArgumentCaptor<WebExchangeAuditContext> contextCaptor = ArgumentCaptor.forClass(WebExchangeAuditContext.class);
+        verify(auditLogMapper).toAuditLog(contextCaptor.capture());
+
+        String captured = contextCaptor.getValue().requestBody();
+        assertThat(captured).doesNotContain("\n");
+        assertThat(captured).doesNotContain("  ");
     }
 
     @Test

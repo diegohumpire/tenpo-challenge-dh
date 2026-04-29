@@ -41,6 +41,18 @@ class HttpPercentageClientTest {
     }
 
     @Test
+    void timeoutProperty_defaultValue_isTenSeconds() {
+        PercentageProperties defaults = new PercentageProperties();
+        assertThat(defaults.getTimeoutSeconds()).isEqualTo(10);
+    }
+
+    @Test
+    void timeoutProperty_customValue_isReadCorrectly() {
+        properties.setTimeoutSeconds(30);
+        assertThat(properties.getTimeoutSeconds()).isEqualTo(30);
+    }
+
+    @Test
     void retryProperties_customValues_areReadCorrectly() {
         assertThat(properties.getRetry().getMaxAttempts()).isEqualTo(2);
         assertThat(properties.getRetry().getInitialBackoffSeconds()).isEqualTo(0);

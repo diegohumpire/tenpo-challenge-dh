@@ -30,6 +30,7 @@ public class PostmanMockPercentageClient implements PercentageProvider {
     private final String path;
     private final CircuitBreaker circuitBreaker;
     private final PercentageProperties.Retry retryConfig;
+    private final Duration timeout;
 
     public PostmanMockPercentageClient(WebClient.Builder builder,
                                        PercentageProperties properties,
@@ -40,6 +41,7 @@ public class PostmanMockPercentageClient implements PercentageProvider {
         this.path = properties.getPostmanMock().getPath();
         this.circuitBreaker = circuitBreaker;
         this.retryConfig = properties.getRetry();
+        this.timeout = Duration.ofSeconds(properties.getTimeoutSeconds());
     }
 
     @Override
@@ -65,6 +67,7 @@ public class PostmanMockPercentageClient implements PercentageProvider {
             return request.retrieve()
                     .bodyToMono(PercentageResponse.class)
                     .map(PercentageResponse::percentage)
+                    .timeout(timeout)
                     .retryWhen(Retry.backoff(retryConfig.getMaxAttempts(), Duration.ofSeconds(retryConfig.getInitialBackoffSeconds()))
                             .maxBackoff(Duration.ofSeconds(retryConfig.getMaxBackoffSeconds()))
                             .doBeforeRetry(signal -> log.warn(

@@ -1,5 +1,6 @@
 package com.tenpo.dh.challenge.dhapi.adapter.in.web.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.AuditEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,7 @@ public class AuditLogFilter implements WebFilter {
 
     private final AuditEventPublisher auditEventPublisher;
     private final WebExchangeAuditLogMapper auditLogMapper;
+    private final ObjectMapper objectMapper;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
@@ -63,7 +65,7 @@ public class AuditLogFilter implements WebFilter {
                 .defaultIfEmpty(new byte[0])
                 .flatMap(bytes -> {
                     String requestBody = bytes.length > 0
-                            ? new String(bytes, StandardCharsets.UTF_8)
+                            ? sanitizeRequestBody(new String(bytes, StandardCharsets.UTF_8))
                             : "";
 
                     // Provide a fresh DataBuffer view of the pre-read bytes on every
@@ -106,6 +108,22 @@ public class AuditLogFilter implements WebFilter {
 
     private boolean isExcluded(String path) {
         return EXCLUDED_PREFIXES.stream().anyMatch(path::startsWith);
+    }
+
+    /**
+     * Compacts a request body string to a single-line JSON with no extra whitespace.
+     * If the body is not valid JSON, returns a single-line trimmed version.
+     */
+    private String sanitizeRequestBody(String body) {
+        if (body == null || body.isBlank()) {
+            return body;
+        }
+        try {
+            Object parsed = objectMapper.readValue(body, Object.class);
+            return objectMapper.writeValueAsString(parsed);
+        } catch (Exception e) {
+            return body.replaceAll("\\s+", " ").strip();
+        }
     }
 
     private String formatQueryParams(ServerHttpRequest req) {

@@ -2,11 +2,13 @@ package com.tenpo.dh.challenge.dhapi.adapter.out.http;
 
 import com.tenpo.dh.challenge.dhapi.config.PercentageProperties;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.PercentageProvider;
+import org.springframework.core.env.Environment;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 
 /**
  * In-memory implementation of {@link PercentageProvider}.
@@ -26,20 +28,34 @@ import java.math.BigDecimal;
 public class InMemoryPercentageProvider implements PercentageProvider {
 
     private final PercentageProperties properties;
+    private final Environment environment;
     private volatile boolean simulatingFailure = false;
 
-    public InMemoryPercentageProvider(PercentageProperties properties) {
+    public InMemoryPercentageProvider(PercentageProperties properties, Environment environment) {
         this.properties = properties;
+        this.environment = environment;
     }
 
     /**
      * Configures this provider to simulate an external service failure on every
      * call.
-     * Intended for use in integration/BDD tests only.
+     * <p>
+     * <b>Only allowed when the {@code test} Spring profile is active.</b>
+     * Throws {@link UnsupportedOperationException} in any other environment to
+     * prevent accidental invocation in production.
+     *
+     * @throws UnsupportedOperationException if the {@code test} profile is not active
      */
     public void setSimulatingFailure(boolean simulatingFailure) {
-        // TODO: Add conditional for test profile only
+        if (!isTestProfileActive()) {
+            throw new UnsupportedOperationException(
+                    "setSimulatingFailure is only allowed when the 'test' Spring profile is active");
+        }
         this.simulatingFailure = simulatingFailure;
+    }
+
+    private boolean isTestProfileActive() {
+        return Arrays.asList(environment.getActiveProfiles()).contains("test");
     }
 
     @Override

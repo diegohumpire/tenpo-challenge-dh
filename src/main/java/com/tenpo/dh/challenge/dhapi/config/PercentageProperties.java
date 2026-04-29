@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 public class PercentageProperties {
 
     private String provider = "memory";
+    private long timeoutSeconds = 10;
     private Cache cache = new Cache();
     private InMemory inMemory = new InMemory();
     private PostmanMock postmanMock = new PostmanMock();

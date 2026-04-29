@@ -3,19 +3,27 @@ package com.tenpo.dh.challenge.dhapi.adapter.out.http;
 import com.tenpo.dh.challenge.dhapi.config.PercentageProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
 import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 class InMemoryPercentageProviderTest {
 
     private InMemoryPercentageProvider provider;
+    private MockEnvironment testEnvironment;
 
     @BeforeEach
     void setUp() {
         PercentageProperties properties = new PercentageProperties();
         properties.getInMemory().setValue(BigDecimal.TEN);
-        provider = new InMemoryPercentageProvider(properties);
+
+        testEnvironment = new MockEnvironment();
+        testEnvironment.setActiveProfiles("test");
+
+        provider = new InMemoryPercentageProvider(properties, testEnvironment);
     }
 
     @Test
@@ -42,5 +50,29 @@ class InMemoryPercentageProviderTest {
         StepVerifier.create(provider.getPercentage())
                 .expectNextMatches(v -> v.compareTo(BigDecimal.TEN) == 0)
                 .verifyComplete();
+    }
+
+    @Test
+    void setSimulatingFailure_nonTestProfile_throwsUnsupportedOperationException() {
+        MockEnvironment prodEnvironment = new MockEnvironment();
+        prodEnvironment.setActiveProfiles("production");
+
+        PercentageProperties properties = new PercentageProperties();
+        InMemoryPercentageProvider prodProvider = new InMemoryPercentageProvider(properties, prodEnvironment);
+
+        assertThatThrownBy(() -> prodProvider.setSimulatingFailure(true))
+                .isInstanceOf(UnsupportedOperationException.class)
+                .hasMessageContaining("test");
+    }
+
+    @Test
+    void setSimulatingFailure_noActiveProfiles_throwsUnsupportedOperationException() {
+        MockEnvironment emptyEnvironment = new MockEnvironment();
+
+        PercentageProperties properties = new PercentageProperties();
+        InMemoryPercentageProvider provider = new InMemoryPercentageProvider(properties, emptyEnvironment);
+
+        assertThatThrownBy(() -> provider.setSimulatingFailure(true))
+                .isInstanceOf(UnsupportedOperationException.class);
     }
 }
