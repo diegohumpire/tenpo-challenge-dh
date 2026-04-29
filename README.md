@@ -189,6 +189,9 @@ docker compose up -d
 - **Tests de integración** — DhapiApplicationTests (Spring Boot + Testcontainers)
 - **BDD/Cucumber** — 4 features: cálculo, caché, rate limiting, audit logs
 
+> Nota: Test de integracion y BDD/Cucumber requieren que Docker esté corriendo, ya que usan Testcontainers para PostgreSQL y Redis.
+> Ver mas detalles en [Integration Test](./docs/integration-tests.md)
+
 ## Percentage Provider
 
 El porcentaje utilizado en el cálculo puede ser provisto por tres modos distintos, configurados con `PERCENTAGE_PROVIDER`:

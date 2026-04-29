@@ -45,7 +45,13 @@ public class AuditLogFilter implements WebFilter {
         }
 
         long startTime = System.currentTimeMillis();
-        String transactionalId = UUID.randomUUID().toString();
+        // TODO: Agregrar un filtro de validacion de cabeceras obligatorias (e.g.
+        // Transactional-Id) para asegurar su presencia y correcta propagación a través
+        // de logs y trazas distribuidas. Mientras tanto
+        String transactionalId = UUID.randomUUID().toString(); // TODO: Debe de ser inyectado mediante una cabecera... o
+                                                               // generado por un componente específico para ese fin
+                                                               // (e.g. TransactionalIdGenerator) para asegurar su
+                                                               // propagación a través de logs y trazas distribuidas.
 
         // Eagerly read and buffer the entire request body once.
         // This prevents multiple subscriptions to the underlying (potentially unicast)
@@ -69,8 +75,7 @@ public class AuditLogFilter implements WebFilter {
                     ServerHttpRequest decoratedRequest = new ServerHttpRequestDecorator(exchange.getRequest()) {
                         @Override
                         public Flux<DataBuffer> getBody() {
-                            return Mono.fromSupplier(() ->
-                                    exchange.getResponse().bufferFactory().wrap(bytes)).flux();
+                            return Mono.fromSupplier(() -> exchange.getResponse().bufferFactory().wrap(bytes)).flux();
                         }
                     };
 
@@ -96,7 +101,8 @@ public class AuditLogFilter implements WebFilter {
                                             .params(formatQueryParams(req))
                                             .requestHeaders(headersToString(req.getHeaders()))
                                             .requestBody(requestBody)
-                                            .statusCode(resp.getStatusCode() != null ? resp.getStatusCode().value() : null)
+                                            .statusCode(
+                                                    resp.getStatusCode() != null ? resp.getStatusCode().value() : null)
                                             .durationMs(durationMs)
                                             .build();
 
