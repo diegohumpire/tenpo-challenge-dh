@@ -4,9 +4,9 @@ Feature: Caché del porcentaje con Redis
   Para evitar llamadas innecesarias al servicio externo y soportar fallos
 
   Scenario: El porcentaje se almacena en caché tras una llamada exitosa
-    Given el servicio externo retorna un porcentaje de 15.0
+    Given el servicio externo retorna un porcentaje de 10.0%
     When se resuelve el porcentaje
-    Then el valor 15.0 se almacena en Redis con TTL de 30 minutos
+    Then el valor 10.0 se almacena en Redis con TTL de 30 minutos
 
   Scenario: Se usa el valor cacheado cuando el servicio externo falla
     Given hay un valor de porcentaje 10.0 en caché

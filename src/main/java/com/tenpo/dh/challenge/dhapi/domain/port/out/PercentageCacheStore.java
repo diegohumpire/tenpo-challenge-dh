@@ -7,4 +7,5 @@ import java.math.BigDecimal;
 public interface PercentageCacheStore {
     Mono<BigDecimal> get();
     Mono<Void> put(BigDecimal percentage);
+    Mono<Void> clear();
 }

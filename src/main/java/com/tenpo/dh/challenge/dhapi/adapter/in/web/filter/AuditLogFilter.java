@@ -8,13 +8,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
 import org.springframework.http.server.reactive.ServerHttpResponse;
-import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
@@ -26,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -49,73 +46,65 @@ public class AuditLogFilter implements WebFilter {
 
         long startTime = System.currentTimeMillis();
         String transactionalId = UUID.randomUUID().toString();
-        AtomicReference<String> requestBodyRef = new AtomicReference<>("");
-        AtomicReference<String> responseBodyRef = new AtomicReference<>("");
 
-        ServerHttpRequest decoratedRequest = new ServerHttpRequestDecorator(exchange.getRequest()) {
-            @Override
-            public Flux<DataBuffer> getBody() {
-                return DataBufferUtils.join(super.getBody())
-                        .map(buffer -> {
-                            byte[] bytes = new byte[buffer.readableByteCount()];
-                            buffer.read(bytes);
-                            DataBufferUtils.release(buffer);
-                            requestBodyRef.set(new String(bytes, StandardCharsets.UTF_8));
-                            return exchange.getResponse().bufferFactory().wrap(bytes);
-                        })
-                        .flux();
-            }
-        };
+        // Eagerly read and buffer the entire request body once.
+        // This prevents multiple subscriptions to the underlying (potentially unicast)
+        // body publisher that would occur if the decorator's getBody() were subscribed
+        // to more than once by the handler or the test infrastructure.
+        return DataBufferUtils.join(exchange.getRequest().getBody())
+                .map(buffer -> {
+                    byte[] bytes = new byte[buffer.readableByteCount()];
+                    buffer.read(bytes);
+                    DataBufferUtils.release(buffer);
+                    return bytes;
+                })
+                .defaultIfEmpty(new byte[0])
+                .flatMap(bytes -> {
+                    String requestBody = bytes.length > 0
+                            ? new String(bytes, StandardCharsets.UTF_8)
+                            : "";
 
-        DataBufferFactory bufferFactory = exchange.getResponse().bufferFactory();
-        ServerHttpResponse decoratedResponse = new ServerHttpResponseDecorator(exchange.getResponse()) {
-            @Override
-            public Mono<Void> writeWith(org.reactivestreams.Publisher<? extends DataBuffer> body) {
-                Flux<DataBuffer> flux = Flux.from(body)
-                        .map(buffer -> {
-                            byte[] bytes = new byte[buffer.readableByteCount()];
-                            buffer.read(bytes);
-                            DataBufferUtils.release(buffer);
-                            responseBodyRef.set(new String(bytes, StandardCharsets.UTF_8));
-                            return bufferFactory.wrap(bytes);
-                        });
-                return super.writeWith(flux);
-            }
-        };
+                    // Provide a fresh DataBuffer view of the pre-read bytes on every
+                    // getBody() call so the handler can always deserialize the body.
+                    ServerHttpRequest decoratedRequest = new ServerHttpRequestDecorator(exchange.getRequest()) {
+                        @Override
+                        public Flux<DataBuffer> getBody() {
+                            return Mono.fromSupplier(() ->
+                                    exchange.getResponse().bufferFactory().wrap(bytes)).flux();
+                        }
+                    };
 
-        ServerWebExchange mutatedExchange = exchange.mutate()
-                .request(decoratedRequest)
-                .response(decoratedResponse)
-                .build();
+                    ServerWebExchange mutatedExchange = exchange.mutate()
+                            .request(decoratedRequest)
+                            .build();
 
-        return chain.filter(mutatedExchange)
-                .doFinally(signal -> {
-                    try {
-                        long durationMs = System.currentTimeMillis() - startTime;
-                        ServerHttpRequest req = mutatedExchange.getRequest();
-                        ServerHttpResponse resp = mutatedExchange.getResponse();
+                    return chain.filter(mutatedExchange)
+                            .doFinally(signal -> {
+                                try {
+                                    long durationMs = System.currentTimeMillis() - startTime;
+                                    ServerHttpRequest req = exchange.getRequest();
+                                    ServerHttpResponse resp = mutatedExchange.getResponse();
 
-                        AuditLog auditLog = AuditLog.builder()
-                                .createdAt(OffsetDateTime.now())
-                                .action(resolveAction(req))
-                                .actionType(resolveActionType(path))
-                                .callDirection(CallDirection.IN)
-                                .transactionalId(transactionalId)
-                                .method(req.getMethod().name())
-                                .endpoint(path)
-                                .params(formatQueryParams(req))
-                                .requestHeaders(headersToString(req.getHeaders()))
-                                .requestBody(requestBodyRef.get())
-                                .responseHeaders(resp.getHeaders() != null ? headersToString(resp.getHeaders()) : null)
-                                .responseBody(responseBodyRef.get())
-                                .statusCode(resp.getStatusCode() != null ? resp.getStatusCode().value() : null)
-                                .durationMs(durationMs)
-                                .build();
+                                    AuditLog auditLog = AuditLog.builder()
+                                            .createdAt(OffsetDateTime.now())
+                                            .action(resolveAction(req))
+                                            .actionType(resolveActionType(path))
+                                            .callDirection(CallDirection.IN)
+                                            .transactionalId(transactionalId)
+                                            .method(req.getMethod().name())
+                                            .endpoint(path)
+                                            .params(formatQueryParams(req))
+                                            .requestHeaders(headersToString(req.getHeaders()))
+                                            .requestBody(requestBody)
+                                            .statusCode(resp.getStatusCode() != null ? resp.getStatusCode().value() : null)
+                                            .durationMs(durationMs)
+                                            .build();
 
-                        auditEventPublisher.publish(auditLog);
-                    } catch (Exception e) {
-                        log.error("Error building audit log entry: {}", e.getMessage());
-                    }
+                                    auditEventPublisher.publish(auditLog);
+                                } catch (Exception e) {
+                                    log.error("Error building audit log entry: {}", e.getMessage());
+                                }
+                            });
                 });
     }
 
@@ -136,8 +125,6 @@ public class AuditLogFilter implements WebFilter {
     private AuditActionType resolveActionType(String path) {
         if (path.contains("/calculations"))
             return AuditActionType.CALCULATION;
-        if (path.contains("/audit-logs"))
-            return AuditActionType.HTTP_REQUEST;
         return AuditActionType.HTTP_REQUEST;
     }
 

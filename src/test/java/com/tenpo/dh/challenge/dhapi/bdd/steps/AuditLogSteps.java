@@ -1,9 +1,11 @@
 package com.tenpo.dh.challenge.dhapi.bdd.steps;
 
+import com.tenpo.dh.challenge.dhapi.adapter.out.persistence.AuditLogR2dbcDao;
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditActionType;
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
 import com.tenpo.dh.challenge.dhapi.domain.model.CallDirection;
 import com.tenpo.dh.challenge.dhapi.domain.port.out.AuditLogRepository;
+import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -21,7 +23,16 @@ public class AuditLogSteps {
     @Autowired
     private AuditLogRepository auditLogRepository;
 
-    private WebTestClient.ResponseSpec lastResponse;
+    @Autowired
+    private AuditLogR2dbcDao auditLogR2dbcDao;
+
+    @Autowired
+    private ScenarioResponseContext scenarioContext;
+
+    @Before
+    public void clearAuditLogs() {
+        auditLogR2dbcDao.deleteAll().block();
+    }
 
     @Given("existen {int} registros en audit_logs")
     public void existenNRegistrosEnAuditLogs(int count) {
@@ -38,64 +49,70 @@ public class AuditLogSteps {
         }
     }
 
-    @When("envío GET /api/v1/audit-logs?page={int}&size={int}")
+    @When("^envío GET /api/v1/audit-logs\\?page=(\\d+)&size=(\\d+)$")
     public void envíoGetAuditLogs(int page, int size) {
-        lastResponse = webTestClient.get()
+        scenarioContext.setLastResponse(webTestClient.get()
                 .uri(u -> u.path("/api/v1/audit-logs").queryParam("page", page).queryParam("size", size).build())
-                .exchange();
+                .exchange());
     }
 
     @Then("la respuesta es {int} OK")
     public void laRespuestaEs200OK(int status) {
-        lastResponse.expectStatus().isEqualTo(status);
-    }
-
-    @And("el campo {string} es {int}")
-    public void elCampoEsInt(String fieldName, int expectedValue) {
-        lastResponse.expectBody()
-                .jsonPath("$." + fieldName).isEqualTo(expectedValue);
+        scenarioContext.getLastResponse().expectStatus().isEqualTo(status);
     }
 
     @And("el campo {string} contiene {int} registros")
     public void elCampoContieneNRegistros(String fieldName, int count) {
-        lastResponse.expectBody()
+        scenarioContext.getLastResponse().expectBody()
                 .jsonPath("$." + fieldName).isArray()
                 .jsonPath("$." + fieldName + ".length()").isEqualTo(count);
     }
 
+    /**
+     * Ensures the previous HTTP exchange (typically a POST) is eagerly executed
+     * before sleeping for the async audit log write to complete.
+     *
+     * WebTestClient.exchange() is lazy — the actual request is only sent when a
+     * terminal assertion method is called. Sleeping without consuming the spec
+     * would let it be overwritten before the request ever fires.
+     */
     @And("espero a que el registro asíncrono se complete")
     public void esperoAQueElRegistroAsincrono() throws InterruptedException {
+        WebTestClient.ResponseSpec pending = scenarioContext.getLastResponse();
+        if (pending != null) {
+            pending.expectStatus().is2xxSuccessful();
+        }
         Thread.sleep(500);
     }
 
-    @And("consulto GET /api/v1/audit-logs?page={int}&size={int}")
+    @And("^consulto GET /api/v1/audit-logs\\?page=(\\d+)&size=(\\d+)$")
     public void consultaAuditLogs(int page, int size) {
-        lastResponse = webTestClient.get()
+        scenarioContext.setLastResponse(webTestClient.get()
                 .uri(u -> u.path("/api/v1/audit-logs").queryParam("page", page).queryParam("size", size).build())
-                .exchange();
+                .exchange());
     }
 
     @Then("el último registro tiene action={string}")
     public void elUltimoRegistroTieneAction(String action) {
-        lastResponse.expectBody()
+        scenarioContext.getLastResponse().expectBody()
                 .jsonPath("$.content[0].action").isEqualTo(action);
     }
 
     @And("el último registro tiene actionType={string}")
     public void elUltimoRegistroTieneActionType(String actionType) {
-        lastResponse.expectBody()
+        scenarioContext.getLastResponse().expectBody()
                 .jsonPath("$.content[0].actionType").isEqualTo(actionType);
     }
 
     @And("el último registro tiene callDirection={string}")
     public void elUltimoRegistroTieneCallDirection(String callDirection) {
-        lastResponse.expectBody()
+        scenarioContext.getLastResponse().expectBody()
                 .jsonPath("$.content[0].callDirection").isEqualTo(callDirection);
     }
 
     @And("el último registro tiene statusCode={int}")
     public void elUltimoRegistroTieneStatusCode(int statusCode) {
-        lastResponse.expectBody()
+        scenarioContext.getLastResponse().expectBody()
                 .jsonPath("$.content[0].statusCode").isEqualTo(statusCode);
     }
 

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.server.WebFilterChain;
@@ -88,6 +89,22 @@ class AuditLogFilterTest {
                 .verifyComplete();
 
         verifyNoInteractions(auditEventPublisher);
+    }
+
+    @Test
+    void filter_withRequestBody_capturesBodyInAuditLog() {
+        String jsonBody = "{\"num1\":5.0,\"num2\":5.0}";
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/v1/calculations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(jsonBody));
+
+        StepVerifier.create(filter.filter(exchange, chain))
+                .verifyComplete();
+
+        ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
+        verify(auditEventPublisher).publish(captor.capture());
+        assertThat(captor.getValue().getRequestBody()).isEqualTo(jsonBody);
     }
 
     @Test

@@ -13,23 +13,40 @@ import java.math.BigDecimal;
  * <p>
  * Header behaviour (read from the current reactive request context):
  * <ul>
- *   <li>{@code x-mock-response-code}: if present and <b>not</b> a 2xx code → simulates
- *       an external service failure ({@code Mono.error}).</li>
- *   <li>{@code x-mock-percentage}: if present → overrides the configured value with
- *       the supplied number; ignored if not parseable.</li>
+ * <li>{@code x-mock-response-code}: if present and <b>not</b> a 2xx code →
+ * simulates
+ * an external service failure ({@code Mono.error}).</li>
+ * <li>{@code x-mock-percentage}: if present → overrides the configured value
+ * with
+ * the supplied number; ignored if not parseable.</li>
  * </ul>
- * When neither header is present the configured {@code percentage.in-memory.value} is returned.
+ * When neither header is present the configured
+ * {@code percentage.in-memory.value} is returned.
  */
 public class InMemoryPercentageProvider implements PercentageProvider {
 
     private final PercentageProperties properties;
+    private volatile boolean simulatingFailure = false;
 
     public InMemoryPercentageProvider(PercentageProperties properties) {
         this.properties = properties;
     }
 
+    /**
+     * Configures this provider to simulate an external service failure on every
+     * call.
+     * Intended for use in integration/BDD tests only.
+     */
+    public void setSimulatingFailure(boolean simulatingFailure) {
+        // TODO: Add conditional for test profile only
+        this.simulatingFailure = simulatingFailure;
+    }
+
     @Override
     public Mono<BigDecimal> getPercentage() {
+        if (simulatingFailure) {
+            return Mono.error(new RuntimeException("Simulated external service failure"));
+        }
         return Mono.deferContextual(ctx -> {
             if (!ctx.hasKey(ServerWebExchange.class)) {
                 return Mono.just(properties.getInMemory().getValue());

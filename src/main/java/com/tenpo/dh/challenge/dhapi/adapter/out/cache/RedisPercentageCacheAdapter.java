@@ -38,4 +38,11 @@ public class RedisPercentageCacheAdapter implements PercentageCacheStore {
                 .doOnNext(ok -> log.debug("Cached percentage={} TTL={}s", percentage, ttl.getSeconds()))
                 .then();
     }
+
+    @Override
+    public Mono<Void> clear() {
+        return redisTemplate.delete(CACHE_KEY)
+                .doOnNext(count -> log.debug("Cleared percentage cache (deleted {} key(s))", count))
+                .then();
+    }
 }
