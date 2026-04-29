@@ -155,6 +155,7 @@ class KafkaAuditLogConsumerTest {
         assertThat(true).isTrue();
     }
 
+    @SuppressWarnings("deprecation")
     private ConsumerRecords<String, String> buildConsumerRecords(String... values) {
         TopicPartition tp = new TopicPartition("audit-events", 0);
         List<ConsumerRecord<String, String>> records = Arrays.stream(values)

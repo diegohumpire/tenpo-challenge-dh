@@ -52,7 +52,6 @@ class KafkaAuditEventPublisherTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void publish_kafkaSendFails_doesNotPropagateException() {
         doAnswer(invocation -> {
             Callback callback = invocation.getArgument(1);
