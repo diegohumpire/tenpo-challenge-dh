@@ -9,6 +9,7 @@ package com.tenpo.dh.challenge.dhapi.adapter.in.web.filter;
  */
 public record WebExchangeAuditContext(
         String transactionalId,
+        String userId,
         String path,
         String method,
         String params,

@@ -22,6 +22,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AuditLogFilterTest {
 
+    private static final String TXN_ID = "txn-test-001";
+    private static final String USER_ID = "user-99";
+
     @Mock
     private AuditEventPublisher auditEventPublisher;
 
@@ -43,7 +46,10 @@ class AuditLogFilterTest {
     @Test
     void filter_calculationsPath_buildsContextWithCorrectPathAndPublishes() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
-                MockServerHttpRequest.post("/api/v1/calculations").build());
+                MockServerHttpRequest.post("/api/v1/calculations")
+                        .header(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, TXN_ID)
+                        .header(RequestHeadersFilter.HEADER_USER_ID, USER_ID)
+                        .build());
 
         StepVerifier.create(filter.filter(exchange, chain))
                 .verifyComplete();
@@ -55,12 +61,17 @@ class AuditLogFilterTest {
         WebExchangeAuditContext capturedContext = contextCaptor.getValue();
         assertThat(capturedContext.path()).isEqualTo("/api/v1/calculations");
         assertThat(capturedContext.method()).isEqualTo("POST");
+        assertThat(capturedContext.transactionalId()).isEqualTo(TXN_ID);
+        assertThat(capturedContext.userId()).isEqualTo(USER_ID);
     }
 
     @Test
     void filter_auditLogsPath_buildsContextWithCorrectPathAndPublishes() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
-                MockServerHttpRequest.get("/api/v1/audit-logs").build());
+                MockServerHttpRequest.get("/api/v1/audit-logs")
+                        .header(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, TXN_ID)
+                        .header(RequestHeadersFilter.HEADER_USER_ID, USER_ID)
+                        .build());
 
         StepVerifier.create(filter.filter(exchange, chain))
                 .verifyComplete();
@@ -101,6 +112,8 @@ class AuditLogFilterTest {
         String jsonBody = "{\"num1\":5.0,\"num2\":5.0}";
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.post("/api/v1/calculations")
+                        .header(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, TXN_ID)
+                        .header(RequestHeadersFilter.HEADER_USER_ID, USER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(jsonBody));
 
@@ -117,7 +130,10 @@ class AuditLogFilterTest {
         doThrow(new RuntimeException("sink closed")).when(auditEventPublisher).publish(any());
 
         MockServerWebExchange exchange = MockServerWebExchange.from(
-                MockServerHttpRequest.post("/api/v1/calculations").build());
+                MockServerHttpRequest.post("/api/v1/calculations")
+                        .header(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, TXN_ID)
+                        .header(RequestHeadersFilter.HEADER_USER_ID, USER_ID)
+                        .build());
 
         StepVerifier.create(filter.filter(exchange, chain))
                 .verifyComplete();

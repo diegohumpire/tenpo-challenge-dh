@@ -1,5 +1,6 @@
 package com.tenpo.dh.challenge.dhapi.bdd.steps;
 
+import com.tenpo.dh.challenge.dhapi.adapter.in.web.filter.RequestHeadersFilter;
 import com.tenpo.dh.challenge.dhapi.adapter.out.persistence.AuditLogR2dbcDao;
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditActionType;
 import com.tenpo.dh.challenge.dhapi.domain.model.AuditLog;
@@ -53,6 +54,8 @@ public class AuditLogSteps {
     public void envíoGetAuditLogs(int page, int size) {
         scenarioContext.setLastResponse(webTestClient.get()
                 .uri(u -> u.path("/api/v1/audit-logs").queryParam("page", page).queryParam("size", size).build())
+                .header(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, "txn-bdd-audit")
+                .header(RequestHeadersFilter.HEADER_USER_ID, "user-bdd-audit")
                 .exchange());
     }
 
@@ -89,6 +92,8 @@ public class AuditLogSteps {
     public void consultaAuditLogs(int page, int size) {
         scenarioContext.setLastResponse(webTestClient.get()
                 .uri(u -> u.path("/api/v1/audit-logs").queryParam("page", page).queryParam("size", size).build())
+                .header(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, "txn-bdd-audit")
+                .header(RequestHeadersFilter.HEADER_USER_ID, "user-bdd-audit")
                 .exchange());
     }
 

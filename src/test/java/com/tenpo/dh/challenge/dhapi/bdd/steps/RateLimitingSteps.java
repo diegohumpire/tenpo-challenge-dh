@@ -1,5 +1,6 @@
 package com.tenpo.dh.challenge.dhapi.bdd.steps;
 
+import com.tenpo.dh.challenge.dhapi.adapter.in.web.filter.RequestHeadersFilter;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -44,6 +45,8 @@ public class RateLimitingSteps {
             responses.add(webTestClient.post()
                     .uri("/api/v1/calculations")
                     .header("X-Forwarded-For", clientIp)
+                    .header(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, "txn-rl-" + i)
+                    .header(RequestHeadersFilter.HEADER_USER_ID, "user-rl")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(Map.of("num1", 5.0, "num2", 5.0))
                     .exchange());
@@ -56,6 +59,8 @@ public class RateLimitingSteps {
             webTestClient.post()
                     .uri("/api/v1/calculations")
                     .header("X-Forwarded-For", clientIp)
+                    .header(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, "txn-rl-pre-" + i)
+                    .header(RequestHeadersFilter.HEADER_USER_ID, "user-rl")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(Map.of("num1", 1.0, "num2", 1.0))
                     .exchange()
@@ -68,6 +73,8 @@ public class RateLimitingSteps {
         scenarioContext.setLastResponse(webTestClient.post()
                 .uri("/api/v1/calculations")
                 .header("X-Forwarded-For", clientIp)
+                .header(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, "txn-rl-4th")
+                .header(RequestHeadersFilter.HEADER_USER_ID, "user-rl")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(Map.of("num1", 5.0, "num2", 5.0))
                 .exchange());

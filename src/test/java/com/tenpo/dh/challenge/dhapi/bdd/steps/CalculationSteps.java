@@ -1,5 +1,6 @@
 package com.tenpo.dh.challenge.dhapi.bdd.steps;
 
+import com.tenpo.dh.challenge.dhapi.adapter.in.web.filter.RequestHeadersFilter;
 import com.tenpo.dh.challenge.dhapi.adapter.out.http.InMemoryPercentageProvider;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
@@ -57,6 +58,8 @@ public class CalculationSteps {
     public void envíoPOSTCalculationsConNum1YNum2(double num1, double num2) {
         WebTestClient.RequestBodySpec spec = webTestClient.post()
                 .uri("/api/v1/calculations")
+                .header(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, "txn-bdd-calc")
+                .header(RequestHeadersFilter.HEADER_USER_ID, "user-bdd-calc")
                 .contentType(MediaType.APPLICATION_JSON);
         if (externalServiceDown) {
             spec = spec.header("x-mock-response-code", "503");
@@ -68,6 +71,8 @@ public class CalculationSteps {
     public void envíoPOSTCalculationsConNum1NullYNum2(double num2) {
         scenarioContext.setLastResponse(webTestClient.post()
                 .uri("/api/v1/calculations")
+                .header(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID, "txn-bdd-calc")
+                .header(RequestHeadersFilter.HEADER_USER_ID, "user-bdd-calc")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(Map.of("num2", num2))
                 .exchange());

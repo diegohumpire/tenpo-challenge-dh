@@ -83,12 +83,13 @@ class WebExchangeAuditLogMapperTest {
     @Test
     void toAuditLog_mapsAllScalarFields() {
         WebExchangeAuditContext ctx = new WebExchangeAuditContext(
-                "txn-123", "/api/v1/calculations", "POST",
+                "txn-123", "user-42", "/api/v1/calculations", "POST",
                 "num1=5", "{Authorization: Bearer token}", "{\"num1\":5}", 201, 42L);
 
         AuditLog log = mapper.toAuditLog(ctx);
 
         assertThat(log.getTransactionalId()).isEqualTo("txn-123");
+        assertThat(log.getUserId()).isEqualTo("user-42");
         assertThat(log.getMethod()).isEqualTo("POST");
         assertThat(log.getParams()).isEqualTo("num1=5");
         assertThat(log.getRequestHeaders()).isEqualTo("{Authorization: Bearer token}");
@@ -101,7 +102,6 @@ class WebExchangeAuditLogMapperTest {
     void toAuditLog_ignoresUnmappedAuditLogFields() {
         AuditLog log = mapper.toAuditLog(context("/api/v1/calculations", "POST"));
         assertThat(log.getId()).isNull();
-        assertThat(log.getUserId()).isNull();
         assertThat(log.getResponseHeaders()).isNull();
         assertThat(log.getResponseBody()).isNull();
         assertThat(log.getErrorMessage()).isNull();
@@ -110,6 +110,6 @@ class WebExchangeAuditLogMapperTest {
     // ── helpers ────────────────────────────────────────────────────────────────
 
     private WebExchangeAuditContext context(String path, String method) {
-        return new WebExchangeAuditContext("txn-id", path, method, null, null, "", null, 0L);
+        return new WebExchangeAuditContext("txn-id", "user-1", path, method, null, null, "", null, 0L);
     }
 }

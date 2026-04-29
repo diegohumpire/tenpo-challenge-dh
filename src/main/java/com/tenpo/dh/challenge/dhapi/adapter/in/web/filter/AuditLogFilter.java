@@ -19,12 +19,11 @@ import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Component
-@Order(2)
+@Order(3)
 @RequiredArgsConstructor
 public class AuditLogFilter implements WebFilter {
 
@@ -43,12 +42,12 @@ public class AuditLogFilter implements WebFilter {
         }
 
         long startTime = System.currentTimeMillis();
-        // TODO: Agregar un filtro de validación de cabeceras obligatorias (e.g.
-        // Transactional-Id) para asegurar su presencia y correcta propagación a través
-        // de logs y trazas distribuidas. Mientras tanto
-        String transactionalId = UUID.randomUUID().toString(); // TODO: Debe de ser inyectado mediante una cabecera o
-                                                               // generado por un componente específico para ese fin
-                                                               // (e.g. TransactionalIdGenerator).
+        // X-Transactional-Id and X-User-Id are guaranteed to be present by
+        // RequestHeadersFilter, which runs at @Order(2) before this filter.
+        String transactionalId = exchange.getRequest().getHeaders()
+                .getFirst(RequestHeadersFilter.HEADER_TRANSACTIONAL_ID);
+        String userId = exchange.getRequest().getHeaders()
+                .getFirst(RequestHeadersFilter.HEADER_USER_ID);
 
         // Eagerly read and buffer the entire request body once.
         // This prevents multiple subscriptions to the underlying (potentially unicast)
@@ -88,6 +87,7 @@ public class AuditLogFilter implements WebFilter {
 
                                     WebExchangeAuditContext context = new WebExchangeAuditContext(
                                             transactionalId,
+                                            userId,
                                             path,
                                             req.getMethod().name(),
                                             formatQueryParams(req),
