@@ -224,6 +224,62 @@
 				</configuration>
 			</plugin>
 			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.12</version>
+				<configuration>
+					<excludes>
+						<!-- Spring @Configuration classes require Spring context to instantiate -->
+						<exclude>com/tenpo/dh/challenge/dhapi/config/**</exclude>
+						<!-- Port interfaces have no implementation code -->
+						<exclude>com/tenpo/dh/challenge/dhapi/domain/port/**</exclude>
+						<!-- Annotation declarations -->
+						<exclude>com/tenpo/dh/challenge/dhapi/annotation/**</exclude>
+						<!-- Spring Boot entry point -->
+						<exclude>com/tenpo/dh/challenge/dhapi/DhapiApplication*</exclude>
+						<!-- Spring Data repository interface — implementation is framework-generated -->
+						<exclude>com/tenpo/dh/challenge/dhapi/adapter/out/persistence/AuditLogR2dbcDao*</exclude>
+						<!-- MapStruct mapper interface — implementation is generated at compile time -->
+						<exclude>com/tenpo/dh/challenge/dhapi/adapter/in/web/dto/AuditLogResponseMapper*</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>check</id>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<rule>
+									<element>BUNDLE</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.80</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>

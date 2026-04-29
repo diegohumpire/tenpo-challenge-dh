@@ -8,6 +8,12 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.ExchangeFunction;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -17,8 +23,7 @@ import java.time.Duration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for retry configuration and circuit breaker behaviour of the percentage HTTP clients.
- * HTTP transport is not tested here; this focuses on resilience mechanics.
+ * Unit tests for retry configuration, circuit breaker behaviour and the HttpPercentageClient class.
  */
 class HttpPercentageClientTest {
 
@@ -150,6 +155,54 @@ class HttpPercentageClientTest {
                 .verifyComplete();
 
         assertThat(cb.getState()).isEqualTo(CircuitBreaker.State.CLOSED);
+    }
+
+    // ── HttpPercentageClient direct tests ──────────────────────────────────────
+
+    @Test
+    void httpPercentageClient_getServiceName_returnsExternalPercentageService() {
+        CircuitBreaker cb = CircuitBreakerRegistry.ofDefaults().circuitBreaker("http-name");
+        HttpPercentageClient client = new HttpPercentageClient(
+                WebClient.builder().exchangeFunction(mockExchangeReturning("{\"percentage\":10.0}")),
+                properties,
+                cb);
+
+        assertThat(client.getServiceName()).isEqualTo("ExternalPercentageService");
+    }
+
+    @Test
+    void httpPercentageClient_buildRequest_returnsMono() {
+        CircuitBreaker cb = CircuitBreakerRegistry.ofDefaults().circuitBreaker("http-build");
+        HttpPercentageClient client = new HttpPercentageClient(
+                WebClient.builder().exchangeFunction(mockExchangeReturning("{\"percentage\":10.0}")),
+                properties,
+                cb);
+
+        StepVerifier.create(client.buildRequest())
+                .assertNext(spec -> assertThat(spec).isNotNull())
+                .verifyComplete();
+    }
+
+    @Test
+    void httpPercentageClient_getPercentage_returnsExpectedValue() {
+        CircuitBreaker cb = CircuitBreakerRegistry.ofDefaults().circuitBreaker("http-get-pct");
+        properties.getRetry().setMaxAttempts(0);
+        HttpPercentageClient client = new HttpPercentageClient(
+                WebClient.builder().exchangeFunction(mockExchangeReturning("{\"percentage\":42.0}")),
+                properties,
+                cb);
+
+        StepVerifier.create(client.getPercentage())
+                .assertNext(v -> assertThat(v).isEqualByComparingTo("42.0"))
+                .verifyComplete();
+    }
+
+    private ExchangeFunction mockExchangeReturning(String jsonBody) {
+        return request -> Mono.just(
+                ClientResponse.create(HttpStatus.OK)
+                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .body(jsonBody)
+                        .build());
     }
 }
 

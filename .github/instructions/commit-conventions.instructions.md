@@ -51,6 +51,15 @@ feat!: change calculation response format
 BREAKING CHANGE: response now returns `result` instead of `value`
 ```
 
+## Workflow
+
+- **Never execute `git commit` automatically.** Always present the proposed commit message to the user and wait for explicit confirmation before running any git command.
+- Suggest the commit command as a code block for the user to run manually, e.g.:
+  ```
+  git add -A
+  git commit -m "type: description"
+  ```
+
 ## Anti-patterns
 
 - `fix: fixed the bug` — past tense, vague
