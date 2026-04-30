@@ -489,6 +489,6 @@ docker compose up -d
 
 - **`[FEAT]` Endpoint para invalidar caché manualmente** — Un endpoint protegido que permita limpiar el caché de porcentaje en Redis, útil para pruebas o situaciones de emergencia.
 
-- **`[FEAT]` Idenpotency Key para evitar cálculos duplicados** — Si llegan dos requests con el mismo `X-Transactional-Id`, podrían compartir el resultado del cálculo en lugar de ejecutar dos veces el proceso completo.
+- **`[FEAT]` Idenpotency Key para evitar cálculos duplicados** — Si llegan dos requests con el mismo `X-Transactional-Id`, podrían compartir el resultado del cálculo en lugar de ejecutar dos veces el proceso completo. Ver propuesta detallada en [Idempotency Key Plan](./docs/idenpotency-key-plan.md).
 
 
