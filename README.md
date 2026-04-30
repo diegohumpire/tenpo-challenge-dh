@@ -466,3 +466,29 @@ docker compose up -d
 
 > Tests de integración y BDD requieren Docker corriendo (Testcontainers gestiona el ciclo de vida de los contenedores).
 > Ver más detalles en [Integration Tests](./docs/integration-tests.md)
+
+---
+
+## Deuda técnica / Backlog
+
+### Deuda técnica
+
+- **`[DEUDA]` Graceful shutdown en `./mvnw spring-boot:run`** — Al hacer `Ctrl+C` se produce un `BUILD FAILURE` durante el shutdown. El `@PreDestroy` necesita mejorar el ciclo de vida para bajar los contenedores Docker Compose limpiamente.
+
+- **`[DEUDA]` El consumer de Kafka puede perder mensajes si la app se cae en el momento justo** — El consumer lee un mensaje de Kafka, lo manda a guardar en PostgreSQL (de forma asíncrona, fire-and-forget), y acto seguido le dice a Kafka "ya procesé este mensaje" (`commitAsync`). El problema: si la app se cae entre el "manda a guardar" y la confirmación real de PostgreSQL, Kafka ya no reentregará el mensaje porque lo considera procesado, y el audit log se pierde. Esto es lo que se llama **at-most-once**: cada mensaje se procesa a lo sumo una vez, pero sin garantía de que llega. El diseño opuesto (**at-least-once**) haría el commit solo después de confirmar que PostgreSQL guardó el dato, pero eso requiere esperar el resultado del `Mono`, lo que no es trivial cuando el consumer vive en un hilo imperativo (virtual thread) y la persistencia es reactiva (R2DBC). Para audit logs es un tradeoff aceptable, pero vale tenerlo en cuenta.
+
+- **`[DEUDA]` api/v1/audit-logs/transactions/ee8bcaa6-83bb-42e9-b25c-eca66e0fe2e0 No esta bien ordenado...** Deberia de ordenarse asi `ORDER BY created_at DESC, transactional_id DESC` para una mejor lectura de eventos relacionados.
+
+### Nice-to-have
+
+- **`[FEAT]` Rate limiting por usuario además de por IP** — El rate limit actual aplica por IP, lo cual puede ser insuficiente detrás de un proxy o NAT compartido. Agregar una ventana adicional por `X-User-Id`.
+
+- **`[FEAT]` Escoger percentage provider por header** — Permitir que el cliente elija el proveedor mediante un header (ej. `X-Percentage-Provider: postman-mock`), sin necesidad de reiniciar la aplicación ni cambiar variables de entorno.
+
+- **`[FEAT]` Retry con backoff exponencial configurable por cliente** — Actualmente el retry está configurado globalmente para todos los providers HTTP. Podría ser útil tener configuración independiente por proveedor (ej. mayor tolerancia para el mock de Postman).
+
+- **`[FEAT]` Endpoint para invalidar caché manualmente** — Un endpoint protegido que permita limpiar el caché de porcentaje en Redis, útil para pruebas o situaciones de emergencia.
+
+- **`[FEAT]` Idenpotency Key para evitar cálculos duplicados** — Si llegan dos requests con el mismo `X-Transactional-Id`, podrían compartir el resultado del cálculo en lugar de ejecutar dos veces el proceso completo.
+
+
