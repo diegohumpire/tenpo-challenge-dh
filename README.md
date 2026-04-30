@@ -180,7 +180,7 @@ Independientemente del modo, el flujo siempre sigue este patrón:
 3. **Si el caché también está vacío** → devolver `503`
 
 > Los diagramas de flujo para cada proveedor están en [Flujo de cálculo](./docs/calculations.md).
-> Nota: Actualmente el Mock de Postman se encuentra en mi cuenta y esta configurado con 2G de latencia de red. Esto quiere decir que puede demorar un poco en responder, lo cual es ideal para probar el comportamiento de timeout y retry del cliente HTTP. Si querés modificar la latencia o el porcentaje que devuelve
+> Nota: Actualmente el Mock de Postman se encuentra en mi cuenta y esta configurado con 2G de latencia de red. Esto quiere decir que puede demorar en responder, lo cual es ideal para probar el comportamiento de timeout y retry del cliente HTTP. Si querés modificar la latencia o el porcentaje que devuelve
 
 ![Postman Configuration](./docs/imgs/postman-configuration.png)
 
@@ -395,12 +395,28 @@ Se implementa con Redis usando el patrón INCR + EXPIRE:
 
 ## Arquitectura
 
-**Decisiones técnicas:**
-- **Arquitectura hexagonal**: el dominio es agnóstico a Spring/infra; facilita testing y reemplazabilidad de adaptadores
-- **Spring Boot 4 API Versioning**: usa el soporte nativo de Spring Framework 7 (`@PostMapping(version = "1")`) con path-segment routing
-- **Fire-and-forget audit**: el filtro de auditoría usa `subscribe()` sin bloquear el response; los errores de persistencia son logueados pero no afectan la respuesta principal
-- **Redis sliding window**: para rate limiting en entornos multi-réplica; INCR + EXPIRE es atómico por primera llamada
-- **Retry con backoff exponencial**: el cliente HTTP usa `Retry.backoff(3, 1s, max 5s)` para reintentos ante fallos transitorios
+Arquitectura hexagonal (Ports & Adapters): el dominio no tiene dependencias de Spring ni de infraestructura. Los adaptadores se conectan a través de interfaces (puertos) y son intercambiables sin tocar el núcleo.
+
+| Capa | Contenido |
+|---|---|
+| **Domain** | Modelos + puertos IN (UseCases) + puertos OUT (SPIs) — cero dependencias externas |
+| **Application** | Servicios que implementan los casos de uso y orquestan los puertos |
+| **Adapter IN** | Filtros WebFlux + Controllers REST |
+| **Adapter OUT** | Clientes HTTP, Redis, Kafka, PostgreSQL R2DBC |
+
+Para el diagrama completo, estructura de packages y decisiones de diseño, ver [Arquitectura](./docs/architecture.md).
+
+## Resiliencia
+
+El proveedor de porcentaje es el único punto de falla externo. La resiliencia se implementa en capas:
+
+1. **Timeout** — 5 s por llamada (configurable con `PERCENTAGE_TIMEOUT_SECONDS`)
+2. **Retry con backoff exponencial** — hasta 3 reintentos, backoff 1 s → 5 s
+3. **Circuit Breaker** (Resilience4j) — se abre si ≥ 50% de las últimas 10 llamadas fallan; permanece abierto 30 s antes de pasar a HALF-OPEN
+4. **Fallback a caché Redis** — si el circuito está abierto o todos los reintentos fallan, usa el último porcentaje cacheado (TTL 30 min)
+5. **503** si el caché también está vacío
+
+Para los parámetros completos, variables de entorno y diagramas de flujo, ver [Resiliencia](./docs/resilience.md).
 
 ## Variables de entorno
 
