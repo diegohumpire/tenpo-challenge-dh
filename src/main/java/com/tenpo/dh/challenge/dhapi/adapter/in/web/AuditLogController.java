@@ -158,11 +158,10 @@ public class AuditLogController {
     public Mono<ResponseEntity<PageResponse<AuditLogDetailResponse>>> getByTransactionalId(
             @PathVariable String transactionalId,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size (max " + MAX_PAGE_SIZE + ")") @RequestParam(defaultValue = "" + DEFAULT_PAGE_SIZE) int size,
-            @Parameter(description = "Sort field and direction") @RequestParam(defaultValue = "createdAt,asc") String sort) {
+            @Parameter(description = "Page size (max " + MAX_PAGE_SIZE + ")") @RequestParam(defaultValue = "" + DEFAULT_PAGE_SIZE) int size) {
 
         int cappedSize = Math.min(size, MAX_PAGE_SIZE);
-        PaginationRequest request = buildPaginationRequest(page, cappedSize, sort);
+        PaginationRequest request = new PaginationRequest(page, cappedSize, "createdAt", PaginationRequest.SortDirection.DESC);
 
         return auditLogUseCase.findAll(request, AuditLogFilter.forTransactionalId(transactionalId))
                 .map(p -> p.map(auditLogResponseMapper::toDetailResponse))
@@ -199,11 +198,10 @@ public class AuditLogController {
     public Mono<ResponseEntity<PageResponse<AuditLogDetailResponse>>> getByUserId(
             @PathVariable String userId,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size (max " + MAX_PAGE_SIZE + ")") @RequestParam(defaultValue = "" + DEFAULT_PAGE_SIZE) int size,
-            @Parameter(description = "Sort field and direction") @RequestParam(defaultValue = "createdAt,asc") String sort) {
+            @Parameter(description = "Page size (max " + MAX_PAGE_SIZE + ")") @RequestParam(defaultValue = "" + DEFAULT_PAGE_SIZE) int size) {
 
         int cappedSize = Math.min(size, MAX_PAGE_SIZE);
-        PaginationRequest request = buildPaginationRequest(page, cappedSize, sort);
+        PaginationRequest request = new PaginationRequest(page, cappedSize, "createdAt", PaginationRequest.SortDirection.DESC);
 
         return auditLogUseCase.findAll(request, AuditLogFilter.forUserId(userId))
                 .map(p -> p.map(auditLogResponseMapper::toDetailResponse))
