@@ -2,6 +2,8 @@
 
 REST API reactiva construida con **Spring Boot 4 / WebFlux** para el challenge técnico de Tenpo.
 
+Expone un endpoint de cálculo que recibe dos números y devuelve su suma aplicando un porcentaje dinámico obtenido de un servicio externo: `resultado = (num1 + num2) × (1 + porcentaje/100)`. El porcentaje se cachea en Redis y tiene fallback automático si el servicio externo falla. Cada request queda registrada en un log de auditoría en PostgreSQL, publicado de forma asíncrona vía Kafka. El acceso está protegido con rate limiting por IP.
+
 ## Características
 
 - **Cálculo con porcentaje dinámico**: `result = (num1 + num2) * (1 + pct/100)`, con retry automático (3 intentos) y fallback a caché
@@ -346,11 +348,16 @@ Respuesta (`503 Service Unavailable`):
 
 Cada llamada a la API queda registrada automáticamente. Podés consultarlo paginado:
 
+> Nota 1: Este endpoint devuelve todos los audit logs, no sólo los relacionados a tu request. Para filtrar por usuario o por transactional ID, usá los endpoints específicos que se describen a continuación.
+> Nota 2: Los elementos son mas "light" a comparacion de los otros endpoints
+
 ```bash
 curl --location 'http://localhost:8080/api/v1/audit-logs?page=0&size=10&sort=createdAt,desc' \
 --header 'x-transactional-id: 3760c8d0-aff2-42f1-9195-85211c4b1afd' \
 --header 'x-user-id: 99f1fa92-3b4f-4cab-b736-3accd63c9b95'
 ```
+
+> Nota: Este endpoint excluye los logs de `action` = `GET_AUDIT_LOGS` para evitar ruido. Si querés ver esos logs también, usá el endpoint de `GET /api/v1/audit-logs` que no tiene ese filtro implicito.
 
 #### 6. Filtrar audit logs por usuario
 
@@ -359,6 +366,8 @@ curl --location 'http://localhost:8080/api/v1/audit-logs/users/99f1fa92-3b4f-4ca
 --header 'x-transactional-id: 3760c8d0-aff2-42f1-9195-85211c4b1afd' \
 --header 'x-user-id: 99f1fa92-3b4f-4cab-b736-3accd63c9b95'
 ```
+
+> Nota: Este endpoint excluye los logs de `action` = `GET_AUDIT_LOGS` para evitar ruido. Si querés ver esos logs también, usá el endpoint de `GET /api/v1/audit-logs` que no tiene ese filtro implicito.
 
 #### 7. Filtrar audit logs por transactional ID
 
