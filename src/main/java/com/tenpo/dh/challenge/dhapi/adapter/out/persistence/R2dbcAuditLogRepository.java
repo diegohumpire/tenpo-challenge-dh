@@ -39,6 +39,9 @@ public class R2dbcAuditLogRepository implements AuditLogRepository {
         Sort sort = request.sortDirection() == PaginationRequest.SortDirection.ASC
                 ? Sort.by(Sort.Direction.ASC, request.sortField())
                 : Sort.by(Sort.Direction.DESC, request.sortField());
+        if (filter.transactionalId() != null || filter.userId() != null) {
+            sort = sort.and(Sort.by(Sort.Direction.DESC, "transactional_id"));
+        }
         PageRequest pageable = PageRequest.of(request.page(), request.size(), sort);
 
         if (filter.isEmpty()) {

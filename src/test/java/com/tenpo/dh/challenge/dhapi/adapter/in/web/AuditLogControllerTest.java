@@ -158,7 +158,7 @@ class AuditLogControllerTest {
                 .thenReturn(Mono.just(result));
         when(auditLogResponseMapper.toDetailResponse(any())).thenReturn(detail);
 
-        StepVerifier.create(controller.getByTransactionalId("txn-123", 0, 20, "createdAt,asc"))
+        StepVerifier.create(controller.getByTransactionalId("txn-123", 0, 20))
                 .assertNext(resp -> {
                     assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
                     assertThat(resp.getBody().totalElements()).isEqualTo(1);
@@ -175,7 +175,7 @@ class AuditLogControllerTest {
         when(auditLogUseCase.findAll(any(PaginationRequest.class), any(AuditLogFilter.class)))
                 .thenReturn(Mono.just(result));
 
-        StepVerifier.create(controller.getByUserId("user-456", 0, 20, "createdAt,asc"))
+        StepVerifier.create(controller.getByUserId("user-456", 0, 20))
                 .assertNext(resp -> assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK))
                 .verifyComplete();
 
