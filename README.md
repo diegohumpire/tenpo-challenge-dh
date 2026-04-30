@@ -477,7 +477,7 @@ docker compose up -d
 
 - **`[DEUDA]` El consumer de Kafka puede perder mensajes si la app se cae en el momento justo** — El consumer lee un mensaje de Kafka, lo manda a guardar en PostgreSQL (de forma asíncrona, fire-and-forget), y acto seguido le dice a Kafka "ya procesé este mensaje" (`commitAsync`). El problema: si la app se cae entre el "manda a guardar" y la confirmación real de PostgreSQL, Kafka ya no reentregará el mensaje porque lo considera procesado, y el audit log se pierde. Esto es lo que se llama **at-most-once**: cada mensaje se procesa a lo sumo una vez, pero sin garantía de que llega. El diseño opuesto (**at-least-once**) haría el commit solo después de confirmar que PostgreSQL guardó el dato, pero eso requiere esperar el resultado del `Mono`, lo que no es trivial cuando el consumer vive en un hilo imperativo (virtual thread) y la persistencia es reactiva (R2DBC). Para audit logs es un tradeoff aceptable, pero vale tenerlo en cuenta.
 
-- **`[DEUDA]` api/v1/audit-logs/transactions/ee8bcaa6-83bb-42e9-b25c-eca66e0fe2e0 No esta bien ordenado...** Deberia de ordenarse asi `ORDER BY created_at DESC, transactional_id DESC` para una mejor lectura de eventos relacionados.
+- ~~**`[DEUDA]` api/v1/audit-logs/transactions/ee8bcaa6-83bb-42e9-b25c-eca66e0fe2e0 No esta bien ordenado...** Deberia de ordenarse asi `ORDER BY created_at DESC, transactional_id DESC` para una mejor lectura de eventos relacionados.~~
 
 ### Nice-to-have
 
