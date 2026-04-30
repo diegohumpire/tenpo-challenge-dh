@@ -436,23 +436,38 @@ Todas las propiedades de conexión soportan variables de entorno con fallback a 
 | `SPRING_R2DBC_URL` | `r2dbc:postgresql://localhost:5432/tenpo_db` | `r2dbc:postgresql://postgres:5432/tenpo_db` | URL R2DBC de PostgreSQL |
 | `SPRING_R2DBC_USERNAME` | `tenpo` | `tenpo` | Usuario R2DBC |
 | `SPRING_R2DBC_PASSWORD` | `tenpo_pass` | `tenpo_pass` | Contraseña R2DBC |
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/tenpo_db` | — | URL JDBC (Flyway) |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/tenpo_db` | — | URL JDBC (datasource; no se usa en Docker donde Flyway usa su propia URL) |
 | `SPRING_DATASOURCE_USERNAME` | `tenpo` | — | Usuario JDBC |
 | `SPRING_DATASOURCE_PASSWORD` | `tenpo_pass` | — | Contraseña JDBC |
-| `SPRING_FLYWAY_URL` | `jdbc:postgresql://localhost:5432/tenpo_db` | `jdbc:postgresql://postgres:5432/tenpo_db` | URL JDBC para migraciones |
+| `SPRING_FLYWAY_URL` | `jdbc:postgresql://localhost:5432/tenpo_db` | `jdbc:postgresql://postgres:5432/tenpo_db` | URL JDBC para migraciones Flyway |
 | `SPRING_FLYWAY_USER` | `tenpo` | `tenpo` | Usuario Flyway |
 | `SPRING_FLYWAY_PASSWORD` | `tenpo_pass` | `tenpo_pass` | Contraseña Flyway |
 | `SPRING_DATA_REDIS_HOST` | `localhost` | `redis` | Host de Redis |
 | `SPRING_DATA_REDIS_PORT` | `6379` | `6379` | Puerto de Redis |
-| `PERCENTAGE_PROVIDER` | `memory` | `postman-mock` | Proveedor de porcentaje (`memory`, `postman-mock`, o cualquier otro valor para externo) |
-| `PERCENTAGE_CACHE_TTL` | `1800` | `1800` | TTL del caché de porcentaje en segundos (default: 30 min) |
+| `PERCENTAGE_PROVIDER` | `memory` | `postman-mock` | Proveedor de porcentaje (`memory`, `postman-mock`, `external`) |
+| `PERCENTAGE_TIMEOUT_SECONDS` | `5` | — | Timeout en segundos para llamadas HTTP al proveedor de porcentaje |
+| `PERCENTAGE_CACHE_TTL` | `1800` | `1800` | TTL del caché de porcentaje en segundos (30 min) |
 | `PERCENTAGE_MEMORY_VALUE` | `10.0` | — | Porcentaje fijo usado en modo `memory` |
 | `PERCENTAGE_POSTMAN_BASE_URL` | `https://ec995055-c0c3-4482-aa85-89f5660540f0.mock.pstmn.io` | `https://ec995055-c0c3-4482-aa85-89f5660540f0.mock.pstmn.io` | URL base del mock de Postman |
 | `PERCENTAGE_POSTMAN_PATH` | `/mock/percentage` | `/mock/percentage` | Path del endpoint de Postman |
 | `PERCENTAGE_EXTERNAL_BASE_URL` | `http://localhost:8080` | — | URL base del servicio externo real |
 | `PERCENTAGE_EXTERNAL_PATH` | `/percentage` | — | Path del endpoint externo |
-| `RATE_LIMIT_MAX_REQUESTS` | `3` | — | Requests máximos por ventana |
-| `RATE_LIMIT_WINDOW_SECONDS` | `60` | — | Tamaño de la ventana en segundos |
+| `PERCENTAGE_RETRY_MAX_ATTEMPTS` | `3` | — | Número máximo de reintentos al llamar al proveedor de porcentaje |
+| `PERCENTAGE_RETRY_INITIAL_BACKOFF_SECONDS` | `1` | — | Backoff inicial en segundos entre reintentos (crece exponencialmente) |
+| `PERCENTAGE_RETRY_MAX_BACKOFF_SECONDS` | `5` | — | Backoff máximo en segundos entre reintentos |
+| `PERCENTAGE_CB_FAILURE_RATE_THRESHOLD` | `50` | — | % de fallos para abrir el circuit breaker |
+| `PERCENTAGE_CB_SLOW_CALL_RATE_THRESHOLD` | `100` | — | % de llamadas lentas para abrir el circuit breaker |
+| `PERCENTAGE_CB_SLOW_CALL_DURATION_SECONDS` | `3` | — | Duración en segundos a partir de la cual una llamada se considera lenta |
+| `PERCENTAGE_CB_SLIDING_WINDOW_SIZE` | `10` | — | Tamaño de la ventana deslizante del circuit breaker |
+| `PERCENTAGE_CB_MINIMUM_NUMBER_OF_CALLS` | `5` | — | Mínimo de llamadas antes de evaluar el estado del circuit breaker |
+| `PERCENTAGE_CB_WAIT_DURATION_OPEN_SECONDS` | `30` | — | Segundos que el circuit breaker permanece abierto antes de pasar a HALF-OPEN |
+| `PERCENTAGE_CB_PERMITTED_CALLS_HALF_OPEN` | `3` | — | Llamadas permitidas en estado HALF-OPEN para evaluar recuperación |
+| `RATE_LIMIT_MAX_REQUESTS` | `3` | — | Requests máximos por IP por ventana |
+| `RATE_LIMIT_WINDOW_SECONDS` | `60` | — | Tamaño de la ventana de rate limiting en segundos |
+| `AUDIT_PUBLISHER` | `memory` | `kafka` | Modo de publicación de auditoría (`memory`, `kafka`) |
+| `AUDIT_KAFKA_TOPIC` | `audit-events` | `audit-events` | Tópico Kafka donde se publican los eventos de auditoría |
+| `AUDIT_KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | `kafka:29092` | Bootstrap servers de Kafka |
+| `AUDIT_KAFKA_CONSUMER_GROUP` | `dhapi-audit` | — | Consumer group de Kafka para el consumer de auditoría |
 
 
 ## Tests
