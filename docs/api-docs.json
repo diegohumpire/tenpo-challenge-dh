@@ -1,0 +1,691 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Tenpo Challenge API",
+        "description": "REST API with dynamic percentage calculation, Redis cache, rate limiting, and audit logging",
+        "contact": { "name": "Diego Humpire", "url": "https://github.com/diegohumpire" },
+        "version": "1.0.0"
+    },
+    "servers": [{ "url": "http://localhost:8080", "description": "Generated server url" }],
+    "tags": [
+        { "name": "Audit Logs", "description": "Endpoint for querying the API call history" },
+        { "name": "Calculations", "description": "Endpoint for performing calculations with dynamic percentage" }
+    ],
+    "paths": {
+        "/api/v1/calculations": {
+            "post": {
+                "tags": ["Calculations"],
+                "summary": "Perform a calculation with dynamic percentage",
+                "description": "Sums num1 and num2, then applies a percentage obtained from an external service",
+                "operationId": "calculate",
+                "parameters": [
+                    {
+                        "name": "X-Transactional-Id",
+                        "in": "header",
+                        "description": "Correlation ID for distributed tracing, injected by the API Gateway",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    {
+                        "name": "X-User-Id",
+                        "in": "header",
+                        "description": "Authenticated user identity, injected by the API Gateway",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "example": "user-123"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": { "schema": { "$ref": "#/components/schemas/CalculationRequest" } }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Calculation successful",
+                        "headers": {
+                            "X-Transactional-Id": {
+                                "description": "Echoed correlation ID for distributed tracing",
+                                "style": "simple",
+                                "schema": { "type": "string", "example": "550e8400-e29b-41d4-a716-446655440000" }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "description": "Remaining requests in the current window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 2 }
+                            },
+                            "X-RateLimit-Limit": {
+                                "description": "Maximum requests allowed per time window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 3 }
+                            }
+                        },
+                        "content": { "*/*": { "schema": { "$ref": "#/components/schemas/CalculationResponse" } } }
+                    },
+                    "400": {
+                        "description": "Invalid input parameters or missing required headers",
+                        "headers": {
+                            "X-Transactional-Id": {
+                                "description": "Echoed correlation ID (present when X-Transactional-Id was supplied in the request)",
+                                "style": "simple",
+                                "schema": { "type": "string" }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "description": "Remaining requests in the current window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 2 }
+                            },
+                            "X-RateLimit-Limit": {
+                                "description": "Maximum requests allowed per time window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 3 }
+                            }
+                        },
+                        "content": {
+                            "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetail" } }
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded",
+                        "headers": {
+                            "X-RateLimit-Remaining": {
+                                "description": "Remaining requests in the current window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 0 }
+                            },
+                            "Retry-After": {
+                                "description": "Seconds to wait before making another request",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 58 }
+                            },
+                            "X-RateLimit-Reset": {
+                                "description": "Unix timestamp (seconds) when the rate limit window resets",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 1714000060 }
+                            },
+                            "X-RateLimit-Limit": {
+                                "description": "Maximum requests allowed per time window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 3 }
+                            }
+                        },
+                        "content": {
+                            "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetail" } }
+                        }
+                    },
+                    "503": {
+                        "description": "External percentage service unavailable",
+                        "headers": {
+                            "X-Transactional-Id": {
+                                "description": "Echoed correlation ID for distributed tracing",
+                                "style": "simple",
+                                "schema": { "type": "string", "example": "550e8400-e29b-41d4-a716-446655440000" }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "description": "Remaining requests in the current window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 2 }
+                            },
+                            "X-RateLimit-Limit": {
+                                "description": "Maximum requests allowed per time window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 3 }
+                            }
+                        },
+                        "content": {
+                            "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetail" } }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/audit-logs/{id}": {
+            "get": {
+                "tags": ["Audit Logs"],
+                "summary": "Get audit log detail",
+                "description": "Returns all fields for a single audit log entry including HTTP headers and bodies.",
+                "operationId": "getAuditLogById",
+                "parameters": [
+                    {
+                        "name": "X-Transactional-Id",
+                        "in": "header",
+                        "description": "Correlation ID for distributed tracing, injected by the API Gateway",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    {
+                        "name": "X-User-Id",
+                        "in": "header",
+                        "description": "Authenticated user identity, injected by the API Gateway",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "example": "user-123"
+                    },
+                    { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Audit log found",
+                        "headers": {
+                            "X-Transactional-Id": {
+                                "description": "Echoed correlation ID for distributed tracing",
+                                "style": "simple",
+                                "schema": { "type": "string" }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "description": "Remaining requests in the current window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 2 }
+                            },
+                            "X-RateLimit-Limit": {
+                                "description": "Maximum requests allowed per time window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 3 }
+                            }
+                        },
+                        "content": { "*/*": { "schema": { "$ref": "#/components/schemas/AuditLogDetailResponse" } } }
+                    },
+                    "404": {
+                        "description": "Audit log not found",
+                        "headers": {
+                            "X-Transactional-Id": {
+                                "description": "Echoed correlation ID for distributed tracing",
+                                "style": "simple",
+                                "schema": { "type": "string" }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "description": "Remaining requests in the current window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 2 }
+                            },
+                            "X-RateLimit-Limit": {
+                                "description": "Maximum requests allowed per time window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 3 }
+                            }
+                        },
+                        "content": {
+                            "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetail" } }
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded",
+                        "headers": {
+                            "X-RateLimit-Remaining": {
+                                "description": "Remaining requests in the current window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 0 }
+                            },
+                            "Retry-After": {
+                                "description": "Seconds to wait before making another request",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 58 }
+                            },
+                            "X-RateLimit-Reset": {
+                                "description": "Unix timestamp (seconds) when the rate limit window resets",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 1714000060 }
+                            },
+                            "X-RateLimit-Limit": {
+                                "description": "Maximum requests allowed per time window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 3 }
+                            }
+                        },
+                        "content": {
+                            "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetail" } }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/audit-logs/users/{userId}": {
+            "get": {
+                "tags": ["Audit Logs"],
+                "summary": "Get audit logs by user ID",
+                "description": "Returns all fields for a given user ID, excluding GET_AUDIT_LOGS entries.",
+                "operationId": "getByUserId",
+                "parameters": [
+                    {
+                        "name": "X-Transactional-Id",
+                        "in": "header",
+                        "description": "Correlation ID for distributed tracing, injected by the API Gateway",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    {
+                        "name": "X-User-Id",
+                        "in": "header",
+                        "description": "Authenticated user identity, injected by the API Gateway",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "example": "user-123"
+                    },
+                    { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number (0-indexed)",
+                        "required": false,
+                        "schema": { "type": "integer", "format": "int32", "default": 0 }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "description": "Page size (max 100)",
+                        "required": false,
+                        "schema": { "type": "integer", "format": "int32", "default": 20 }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Sort field and direction",
+                        "required": false,
+                        "schema": { "type": "string", "default": "createdAt,asc" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Audit logs retrieved successfully",
+                        "headers": {
+                            "X-Transactional-Id": {
+                                "description": "Echoed correlation ID for distributed tracing",
+                                "style": "simple",
+                                "schema": { "type": "string" }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "description": "Remaining requests in the current window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 2 }
+                            },
+                            "X-RateLimit-Limit": {
+                                "description": "Maximum requests allowed per time window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 3 }
+                            }
+                        },
+                        "content": {
+                            "*/*": { "schema": { "$ref": "#/components/schemas/PageResponseAuditLogDetailResponse" } }
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded",
+                        "headers": {
+                            "X-RateLimit-Remaining": {
+                                "description": "Remaining requests in the current window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 0 }
+                            },
+                            "Retry-After": {
+                                "description": "Seconds to wait before making another request",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 58 }
+                            },
+                            "X-RateLimit-Reset": {
+                                "description": "Unix timestamp (seconds) when the rate limit window resets",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 1714000060 }
+                            },
+                            "X-RateLimit-Limit": {
+                                "description": "Maximum requests allowed per time window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 3 }
+                            }
+                        },
+                        "content": {
+                            "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetail" } }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/audit-logs/transactions/{transactionalId}": {
+            "get": {
+                "tags": ["Audit Logs"],
+                "summary": "Get audit logs by transactional ID",
+                "description": "Returns all fields for a given transactional ID, excluding GET_AUDIT_LOGS entries.",
+                "operationId": "getByTransactionalId",
+                "parameters": [
+                    {
+                        "name": "X-Transactional-Id",
+                        "in": "header",
+                        "description": "Correlation ID for distributed tracing, injected by the API Gateway",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    {
+                        "name": "X-User-Id",
+                        "in": "header",
+                        "description": "Authenticated user identity, injected by the API Gateway",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "example": "user-123"
+                    },
+                    { "name": "transactionalId", "in": "path", "required": true, "schema": { "type": "string" } },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number (0-indexed)",
+                        "required": false,
+                        "schema": { "type": "integer", "format": "int32", "default": 0 }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "description": "Page size (max 100)",
+                        "required": false,
+                        "schema": { "type": "integer", "format": "int32", "default": 20 }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Sort field and direction",
+                        "required": false,
+                        "schema": { "type": "string", "default": "createdAt,asc" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Audit logs retrieved successfully",
+                        "headers": {
+                            "X-Transactional-Id": {
+                                "description": "Echoed correlation ID for distributed tracing",
+                                "style": "simple",
+                                "schema": { "type": "string" }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "description": "Remaining requests in the current window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 2 }
+                            },
+                            "X-RateLimit-Limit": {
+                                "description": "Maximum requests allowed per time window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 3 }
+                            }
+                        },
+                        "content": {
+                            "*/*": { "schema": { "$ref": "#/components/schemas/PageResponseAuditLogDetailResponse" } }
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded",
+                        "headers": {
+                            "X-RateLimit-Remaining": {
+                                "description": "Remaining requests in the current window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 0 }
+                            },
+                            "Retry-After": {
+                                "description": "Seconds to wait before making another request",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 58 }
+                            },
+                            "X-RateLimit-Reset": {
+                                "description": "Unix timestamp (seconds) when the rate limit window resets",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 1714000060 }
+                            },
+                            "X-RateLimit-Limit": {
+                                "description": "Maximum requests allowed per time window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 3 }
+                            }
+                        },
+                        "content": {
+                            "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetail" } }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/audit-logs": {
+            "get": {
+                "tags": ["Audit Logs"],
+                "summary": "Get paginated audit log history",
+                "description": "Returns a lightweight paginated list. Supports optional filters on indexed fields.",
+                "operationId": "getAuditLogs",
+                "parameters": [
+                    {
+                        "name": "X-Transactional-Id",
+                        "in": "header",
+                        "description": "Correlation ID for distributed tracing, injected by the API Gateway",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    {
+                        "name": "X-User-Id",
+                        "in": "header",
+                        "description": "Authenticated user identity, injected by the API Gateway",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "example": "user-123"
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number (0-indexed)",
+                        "required": false,
+                        "schema": { "type": "integer", "format": "int32", "default": 0 }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "description": "Page size (max 100)",
+                        "required": false,
+                        "schema": { "type": "integer", "format": "int32", "default": 20 }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Sort field and direction",
+                        "required": false,
+                        "schema": { "type": "string", "default": "createdAt,desc" }
+                    },
+                    {
+                        "name": "userId",
+                        "in": "query",
+                        "description": "Filter by userId",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "transactionalId",
+                        "in": "query",
+                        "description": "Filter by transactionalId",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "action",
+                        "in": "query",
+                        "description": "Filter by action",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "actionType",
+                        "in": "query",
+                        "description": "Filter by actionType",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": ["HTTP_REQUEST", "CALCULATION", "EXTERNAL_CALL", "CACHE_ACCESS", "SYSTEM"]
+                        }
+                    },
+                    {
+                        "name": "callDirection",
+                        "in": "query",
+                        "description": "Filter by callDirection",
+                        "required": false,
+                        "schema": { "type": "string", "enum": ["IN", "OUT"] }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Audit logs retrieved successfully",
+                        "headers": {
+                            "X-Transactional-Id": {
+                                "description": "Echoed correlation ID for distributed tracing",
+                                "style": "simple",
+                                "schema": { "type": "string" }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "description": "Remaining requests in the current window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 2 }
+                            },
+                            "X-RateLimit-Limit": {
+                                "description": "Maximum requests allowed per time window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 3 }
+                            }
+                        },
+                        "content": {
+                            "*/*": { "schema": { "$ref": "#/components/schemas/PageResponseAuditLogSummaryResponse" } }
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded",
+                        "headers": {
+                            "X-RateLimit-Remaining": {
+                                "description": "Remaining requests in the current window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 0 }
+                            },
+                            "Retry-After": {
+                                "description": "Seconds to wait before making another request",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 58 }
+                            },
+                            "X-RateLimit-Reset": {
+                                "description": "Unix timestamp (seconds) when the rate limit window resets",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 1714000060 }
+                            },
+                            "X-RateLimit-Limit": {
+                                "description": "Maximum requests allowed per time window",
+                                "style": "simple",
+                                "schema": { "type": "integer", "example": 3 }
+                            }
+                        },
+                        "content": {
+                            "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetail" } }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "CalculationRequest": {
+                "type": "object",
+                "description": "Request body for the calculation endpoint",
+                "properties": {
+                    "num1": { "type": "number", "description": "First number", "example": 5.0 },
+                    "num2": { "type": "number", "description": "Second number", "example": 5.0 }
+                },
+                "required": ["num1", "num2"]
+            },
+            "ProblemDetail": {
+                "type": "object",
+                "properties": {
+                    "type": { "type": "string", "format": "uri" },
+                    "title": { "type": "string" },
+                    "status": { "type": "integer", "format": "int32" },
+                    "detail": { "type": "string" },
+                    "instance": { "type": "string", "format": "uri" },
+                    "properties": { "type": "object", "additionalProperties": {} }
+                }
+            },
+            "CalculationResponse": {
+                "type": "object",
+                "description": "Result of a calculation with applied percentage",
+                "properties": {
+                    "num1": { "type": "number", "example": 5.0 },
+                    "num2": { "type": "number", "example": 5.0 },
+                    "sum": { "type": "number", "example": 10.0 },
+                    "percentage": { "type": "number", "example": 10.0 },
+                    "result": { "type": "number", "example": 11.0 }
+                }
+            },
+            "AuditLogDetailResponse": {
+                "type": "object",
+                "description": "Full detail of an audit log entry including HTTP headers and bodies",
+                "properties": {
+                    "id": { "type": "integer", "format": "int64" },
+                    "createdAt": { "type": "string", "format": "date-time" },
+                    "action": { "type": "string" },
+                    "actionType": {
+                        "type": "string",
+                        "enum": ["HTTP_REQUEST", "CALCULATION", "EXTERNAL_CALL", "CACHE_ACCESS", "SYSTEM"]
+                    },
+                    "callDirection": { "type": "string", "enum": ["IN", "OUT"] },
+                    "userId": { "type": "string" },
+                    "transactionalId": { "type": "string" },
+                    "method": { "type": "string" },
+                    "endpoint": { "type": "string" },
+                    "params": { "type": "string" },
+                    "requestHeaders": { "type": "string" },
+                    "requestBody": { "type": "string" },
+                    "responseHeaders": { "type": "string" },
+                    "responseBody": { "type": "string" },
+                    "statusCode": { "type": "integer", "format": "int32" },
+                    "errorMessage": { "type": "string" },
+                    "durationMs": { "type": "integer", "format": "int64" }
+                }
+            },
+            "PageResponseAuditLogDetailResponse": {
+                "type": "object",
+                "properties": {
+                    "content": { "type": "array", "items": { "$ref": "#/components/schemas/AuditLogDetailResponse" } },
+                    "page": { "type": "integer", "format": "int32" },
+                    "size": { "type": "integer", "format": "int32" },
+                    "totalElements": { "type": "integer", "format": "int64" },
+                    "totalPages": { "type": "integer", "format": "int32" }
+                }
+            },
+            "AuditLogSummaryResponse": {
+                "type": "object",
+                "description": "Lightweight summary of an audit log entry",
+                "properties": {
+                    "id": { "type": "integer", "format": "int64" },
+                    "createdAt": { "type": "string", "format": "date-time" },
+                    "action": { "type": "string" },
+                    "actionType": {
+                        "type": "string",
+                        "enum": ["HTTP_REQUEST", "CALCULATION", "EXTERNAL_CALL", "CACHE_ACCESS", "SYSTEM"]
+                    },
+                    "callDirection": { "type": "string", "enum": ["IN", "OUT"] },
+                    "userId": { "type": "string" },
+                    "transactionalId": { "type": "string" },
+                    "method": { "type": "string" },
+                    "endpoint": { "type": "string" },
+                    "params": { "type": "string" },
+                    "statusCode": { "type": "integer", "format": "int32" },
+                    "errorMessage": { "type": "string" },
+                    "durationMs": { "type": "integer", "format": "int64" },
+                    "_links": { "type": "object", "additionalProperties": { "$ref": "#/components/schemas/LinkDto" } }
+                }
+            },
+            "LinkDto": { "type": "object", "properties": { "href": { "type": "string" } } },
+            "PageResponseAuditLogSummaryResponse": {
+                "type": "object",
+                "properties": {
+                    "content": { "type": "array", "items": { "$ref": "#/components/schemas/AuditLogSummaryResponse" } },
+                    "page": { "type": "integer", "format": "int32" },
+                    "size": { "type": "integer", "format": "int32" },
+                    "totalElements": { "type": "integer", "format": "int64" },
+                    "totalPages": { "type": "integer", "format": "int32" }
+                }
+            }
+        }
+    }
+}
